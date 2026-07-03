@@ -1,0 +1,13 @@
+{
+  "name": "manza-hoops-daily-briefs",
+  "version": "1.0.0",
+  "description": "Manza Hoops Daily Briefs — NBA cue sheet, teleprompter, overlay, and YouTube copy sheet",
+  "main": "app/server.js",
+  "scripts": {
+    "start": "node app/server.js",
+    "dev": "node app/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

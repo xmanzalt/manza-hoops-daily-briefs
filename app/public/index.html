@@ -393,16 +393,104 @@ function buildTree(filter){
 function toggle(k){ collapsed.has(k)?collapsed.delete(k):collapsed.add(k); }
 function shortPhase(p){ p=p.replace(/\(.*\)/,'').trim(); return p.length>18?p.slice(0,17)+'…':p; }
 
+// ---------- GitHub API source ----------
+const GH_REPO = 'xmanzalt/manza-hoops-daily-briefs';
+const GH_BRANCH = 'main';
+
+function parseYoutubeClient(md, date, phase) {
+  const anglesStart = md.search(/^##\s*.*CONTENT ANGLES/im);
+  const titles = [], thumbnails = [], angles = [];
+  if (anglesStart !== -1) {
+    const lines = md.slice(anglesStart).split('\n').slice(1);
+    for (const line of lines) {
+      if (/^##\s+/.test(line)) break;
+      const titleM = line.match(/Title ideas?:\s*(.*)/i);
+      if (titleM) {
+        for (const m of titleM[1].matchAll(/\*?"([^"*\n]+)"\*?/g)) { const t=m[1].trim(); if(t) titles.push(t); }
+        continue;
+      }
+      const thumbM = line.match(/Thumbnail(?:\s+text)?:\s*(.*)/i);
+      if (thumbM) {
+        for (const m of thumbM[1].matchAll(/`([^`]+)`/g)) { const t=m[1].trim(); if(t) thumbnails.push(t); }
+        continue;
+      }
+      const bulletM = line.match(/^\s*[-*]\s+(.*)/);
+      if (bulletM) {
+        const clean = bulletM[1].replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1').replace(/\[([^\]]+)\]\([^)]+\)/g,'$1').trim();
+        angles.push(clean);
+      }
+    }
+  }
+  const breakStart = md.search(/^##\s*.*BREAKING/im);
+  const breakingBullets = [];
+  if (breakStart !== -1) {
+    const lines = md.slice(breakStart).split('\n').slice(1);
+    for (const line of lines) {
+      if (/^##\s+/.test(line) || /^\s*---\s*$/.test(line)) break;
+      const m = line.match(/^\s*[-*]\s+(.*)/);
+      if (m) {
+        const clean = m[1].replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1').replace(/\[([^\]]+)\]\([^)]+\)/g,'$1').replace(/→\s*/g,'— ').trim();
+        breakingBullets.push(clean);
+      }
+    }
+  }
+  const nameSet = new Set(['NBA','basketball','Manza Hoops','NBA highlights']);
+  const skipWords = /^(CONFIRMED|RUMOR|DONE|MAX|BREAKING|FREE AGENCY|AGENT|INJURY|REPORT|LOOKING|CONTENT|SOURCE|TELEPROMPTER|OFFSEASON|REGULAR|SEASON|PLAYOFFS|DRAFT|SUMMER LEAGUE|PRESEASON)$/i;
+  for (const m of md.matchAll(/\*\*([A-Z][A-Za-zé'À-ɏ .]{2,28})\*\*/g)) {
+    const name = m[1].trim();
+    if (!skipWords.test(name) && name.split(/\s+/).length <= 4) nameSet.add(name);
+  }
+  const year = date.split('-')[0];
+  const p = (phase||'').toUpperCase();
+  if (p.includes('FREE AGENCY')) { nameSet.add('NBA free agency '+year); nameSet.add('NBA offseason '+year); }
+  if (p.includes('SUMMER LEAGUE')) nameSet.add('NBA Summer League '+year);
+  if (p.includes('PLAYOFF')) nameSet.add('NBA playoffs '+year);
+  if (p.includes('DRAFT')) nameSet.add('NBA Draft '+year);
+  return { titles, thumbnails, angles, breakingBullets, tags: Array.from(nameSet) };
+}
+
+function parseBriefClient(file, md) {
+  const date = file.replace(/\.md$/, '');
+  const phaseMatch = md.match(/Phase:\s*\*\*([^*]+)\*\*/i);
+  const phase = phaseMatch ? phaseMatch[1].trim() : '';
+  const titleMatch = md.match(/^#\s+(.+)$/m);
+  const title = titleMatch ? titleMatch[1].replace(/[🏀]/gu,'').trim() : date;
+  const scriptHeadingRe = /^##\s*.*TELEPROMPTER SCRIPT.*$/im;
+  let script = '';
+  const hIdx = md.search(scriptHeadingRe);
+  if (hIdx !== -1) {
+    let after = md.slice(hIdx).split('\n').slice(1).join('\n');
+    script = after.split('\n')
+      .filter(line => !/^\s*\*[^*].*\*\s*$/.test(line.trim()))
+      .filter(line => !/^\s*---\s*$/.test(line))
+      .join('\n').trim();
+  }
+  const youtube = parseYoutubeClient(md, date, phase);
+  return { file, date, phase, title, markdown: md, script, youtube };
+}
+
 // ---------- load / select ----------
 async function loadList(){
-  const r=await fetch('/api/briefs'); const j=await r.json();
-  BRIEFS=j.briefs||[];
-  document.getElementById('sub').textContent='Daily News Database · '+j.count+' brief'+(j.count===1?'':'s');
-  buildTree(document.getElementById('search').value);
-  if(!current && BRIEFS[0]) selectBrief(BRIEFS[0].file);
+  try {
+    const r = await fetch('https://api.github.com/repos/'+GH_REPO+'/contents/briefs?ref='+GH_BRANCH);
+    if (!r.ok) throw new Error('GitHub API '+r.status);
+    const files = await r.json();
+    const briefFiles = files
+      .filter(f => /^\d{4}-\d{2}-\d{2}\.md$/.test(f.name))
+      .sort((a,b) => b.name.localeCompare(a.name));
+    BRIEFS = briefFiles.map(f => ({ file: f.name, date: f.name.replace(/\.md$/,''), phase:'', title: f.name.replace(/\.md$/,''), hasScript: true }));
+    document.getElementById('sub').textContent = 'Daily News Database · '+BRIEFS.length+' brief'+(BRIEFS.length===1?'':'s');
+    buildTree(document.getElementById('search').value);
+    if (!current && BRIEFS[0]) selectBrief(BRIEFS[0].file);
+  } catch(e) {
+    document.getElementById('sub').textContent = 'Error loading briefs — check connection';
+    console.error(e);
+  }
 }
 async function selectBrief(file){
-  const r=await fetch('/api/brief?file='+encodeURIComponent(file)); current=await r.json();
+  const r = await fetch('https://raw.githubusercontent.com/'+GH_REPO+'/'+GH_BRANCH+'/briefs/'+encodeURIComponent(file));
+  const md = await r.text();
+  current = parseBriefClient(file, md);
   // reset overlay state so opener summary regenerates for the new brief
   OV.headline=''; OV.subtext=''; OV.activeTopicIdx=0; OV.bottomBar=''; OV.topics=[]; OV.photos=[];
   const displayTitle=(current.title||current.date).replace(/\s*[—–-]+\s*.*/,'').replace(/\bCUE SHEET\b/gi,'').trim();

@@ -300,8 +300,9 @@
 
 <!-- Teleprompter -->
 <div class="tp" id="tp">
+  <div style="height:3px;background:#111;width:100%;flex-shrink:0"><div id="tpProgressBar" style="height:100%;background:var(--accent);width:0%;transition:width .3s linear"></div></div>
   <div class="tp-scroll" id="tpScroll">
-    <div class="hint">Space = play/pause · ↑/↓ = speed · Esc = close</div>
+    <div class="hint">Space = play/pause · ↑/↓ = speed · ←/→ = scrub · Esc = close</div>
     <div class="tp-guide"></div>
     <div class="tp-inner" id="tpInner"></div>
   </div>
@@ -310,6 +311,7 @@
     <button class="btn" id="tpRestart">⟲ Restart</button>
     <div class="grp">Speed <input type="range" id="tpSpeed" min="10" max="180" value="60"><span id="tpSpeedV">60</span></div>
     <div class="grp">Font <input type="range" id="tpFont" min="26" max="90" value="46"><span id="tpFontV">46</span></div>
+    <span id="tpTimeEst" style="color:var(--muted);font-size:12px;min-width:52px"></span>
     <div class="toggle" id="tpMirror">Mirror</div>
     <button class="btn" id="tpClose">✕ Close</button>
   </div>
@@ -481,7 +483,12 @@ async function loadList(){
     BRIEFS = briefFiles.map(f => ({ file: f.name, date: f.name.replace(/\.md$/,''), phase:'', title: f.name.replace(/\.md$/,''), hasScript: true }));
     document.getElementById('sub').textContent = 'Daily News Database · '+BRIEFS.length+' brief'+(BRIEFS.length===1?'':'s');
     buildTree(document.getElementById('search').value);
-    if (!current && BRIEFS[0]) selectBrief(BRIEFS[0].file);
+    // Auto-select today's brief if it exists, otherwise most recent
+    const todayFile = new Date().toISOString().slice(0,10) + '.md';
+    const todayBrief = BRIEFS.find(b => b.file === todayFile);
+    if (!current) selectBrief((todayBrief || BRIEFS[0]).file);
+    // Auto-open sidebar on load
+    document.getElementById('app').classList.remove('sidebar-collapsed');
   } catch(e) {
     document.getElementById('sub').textContent = 'Error loading briefs — check connection';
     console.error(e);
@@ -491,7 +498,7 @@ async function selectBrief(file){
   const r = await fetch('https://raw.githubusercontent.com/'+GH_REPO+'/'+GH_BRANCH+'/briefs/'+encodeURIComponent(file));
   const md = await r.text();
   current = parseBriefClient(file, md);
-  // reset overlay state so opener summary regenerates for the new brief
+  // reset per-brief state only — preserve logo, theme, bgColor across briefs
   OV.headline=''; OV.subtext=''; OV.activeTopicIdx=0; OV.bottomBar=''; OV.topics=[]; OV.photos=[];
   const displayTitle=(current.title||current.date).replace(/\s*[—–-]+\s*.*/,'').replace(/\bCUE SHEET\b/gi,'').trim();
   document.getElementById('title').textContent=displayTitle;
@@ -566,7 +573,17 @@ function maxPos(){ return tpInner.scrollHeight - tpScroll.clientHeight*0.15; }
 function setPlaying(p){ tpPlaying=p; document.getElementById('tpPlay').textContent=p?'∥ Pause':'▶ Play';
   if(p){ tpLast=performance.now(); tpRAF=requestAnimationFrame(tick);} else if(tpRAF){cancelAnimationFrame(tpRAF);tpRAF=null;} }
 function tick(now){ const dt=(now-tpLast)/1000; tpLast=now; tpPos+=tpSpeed*dt;
-  if(tpPos>=maxPos()){tpPos=maxPos();applyPos();setPlaying(false);return;} applyPos(); tpRAF=requestAnimationFrame(tick); }
+  if(tpPos>=maxPos()){tpPos=maxPos();applyPos();setPlaying(false);return;} applyPos(); updateTpProgress(); tpRAF=requestAnimationFrame(tick); }
+function updateTpProgress(){
+  const pct = maxPos() > 0 ? Math.min(100, tpPos/maxPos()*100) : 0;
+  const bar = document.getElementById('tpProgressBar');
+  if(bar) bar.style.width = pct+'%';
+  const est = document.getElementById('tpTimeEst');
+  if(est && tpSpeed > 0){
+    const remaining = Math.max(0, maxPos()-tpPos)/tpSpeed;
+    est.textContent = remaining < 60 ? Math.round(remaining)+'s left' : Math.round(remaining/60)+'m left';
+  }
+}
 document.getElementById('openTp').onclick=()=>{
   if(currentTab==='script') openTp();
   else if(currentTab==='brief') { if(!current||!current.markdown){alert('No brief loaded.');return;} openTpWithText(current.markdown); }
@@ -582,11 +599,18 @@ fontR.oninput=e=>{tpInner.style.fontSize=e.target.value+'px';document.getElement
 tpInner.style.fontSize='46px';
 document.getElementById('tpMirror').onclick=e=>{tp.classList.toggle('mirror');e.target.classList.toggle('on');applyPos();};
 document.addEventListener('keydown',e=>{
-  if(!tp.classList.contains('open'))return;
-  if(e.code==='Space'){e.preventDefault();setPlaying(!tpPlaying);}
-  else if(e.code==='Escape'){closeTp();}
-  else if(e.code==='ArrowUp'){tpSpeed=Math.min(180,tpSpeed+8);speedR.value=tpSpeed;document.getElementById('tpSpeedV').textContent=tpSpeed;}
-  else if(e.code==='ArrowDown'){tpSpeed=Math.max(10,tpSpeed-8);speedR.value=tpSpeed;document.getElementById('tpSpeedV').textContent=tpSpeed;}
+  const inInput = ['INPUT','TEXTAREA'].includes(document.activeElement.tagName) || document.activeElement.isContentEditable;
+  if(tp.classList.contains('open')){
+    if(e.code==='Space'){e.preventDefault();setPlaying(!tpPlaying);}
+    else if(e.code==='Escape'){closeTp();}
+    else if(e.code==='ArrowUp'){tpSpeed=Math.min(180,tpSpeed+8);speedR.value=tpSpeed;document.getElementById('tpSpeedV').textContent=tpSpeed;}
+    else if(e.code==='ArrowDown'){tpSpeed=Math.max(10,tpSpeed-8);speedR.value=tpSpeed;document.getElementById('tpSpeedV').textContent=tpSpeed;}
+    else if(e.code==='ArrowLeft'){e.preventDefault();tpPos=Math.max(0,tpPos-tpSpeed*3);applyPos();updateTpProgress();}
+    else if(e.code==='ArrowRight'){e.preventDefault();tpPos=Math.min(maxPos(),tpPos+tpSpeed*3);applyPos();updateTpProgress();}
+  } else if(!inInput){
+    if(e.key==='t'||e.key==='T'){e.preventDefault();document.getElementById('openTp').click();}
+    else if(e.key==='y'||e.key==='Y'){e.preventDefault();if(current)document.getElementById('openYt').click();}
+  }
 });
 tpScroll.addEventListener('wheel',e=>{
   e.preventDefault();
@@ -699,6 +723,22 @@ document.getElementById('openYt').onclick = () => {
   const yt=current.youtube||{};
   const body=document.getElementById('ytBody');
   body.innerHTML='';
+
+  // Copy all button
+  const copyAllBtn = document.createElement('button');
+  copyAllBtn.className='btn';
+  copyAllBtn.style.cssText='width:100%;text-align:center;font-weight:600';
+  copyAllBtn.textContent='📋 Copy All (Title + Description + Tags)';
+  copyAllBtn.onclick=()=>{
+    const title=(yt.titles&&yt.titles[0])||'';
+    const desc=buildYtDescription(yt,current);
+    const tags=(yt.tags||[]).join(', ');
+    navigator.clipboard.writeText('Title: '+title+'\n\nDescription:\n'+desc+'\n\nTags: '+tags);
+    copyAllBtn.textContent='✓ Copied!';
+    setTimeout(()=>copyAllBtn.textContent='📋 Copy All (Title + Description + Tags)',1500);
+  };
+  body.appendChild(copyAllBtn);
+
   makeTitlesSection(body,yt.titles||[]);
   makeEditableSection(body,'Description',buildYtDescription(yt,current));
   makeEditableSection(body,'Tags',(yt.tags||[]).join(', '));
@@ -926,7 +966,6 @@ function renderOverlayTab() {
       document.getElementById('ovSubInput').value = OV.subtext;
       document.querySelectorAll('.ov-topic').forEach((b,j) => b.classList.toggle('active', j===i));
       updateBanner();
-      // refresh preset pills for this topic
       const presetsRow = document.querySelector('.ov-bar-presets');
       if (presetsRow) {
         presetsRow.innerHTML = '';
@@ -945,7 +984,19 @@ function renderOverlayTab() {
         });
       }
     };
+    // copy icon next to each pill
+    const copyIcon = document.createElement('button');
+    copyIcon.title = 'Copy headline + subtext';
+    copyIcon.style.cssText = 'background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:0 2px;line-height:1;vertical-align:middle';
+    copyIcon.textContent = '⎘';
+    copyIcon.onclick = e => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(t.headline + (t.subtext ? '\n' + t.subtext : ''));
+      copyIcon.textContent = '✓';
+      setTimeout(() => copyIcon.textContent = '⎘', 1200);
+    };
     topicsRow.appendChild(btn);
+    topicsRow.appendChild(copyIcon);
   });
   const manualBtn = document.createElement('button');
   manualBtn.className = 'ov-topic';
@@ -1344,13 +1395,19 @@ function renderOverlayTab() {
   const dlPng = document.createElement('button');
   dlPng.className = 'ov-dl-btn';
   dlPng.id = 'ovDownloadLoop';
-  dlPng.textContent = '⬇ Download PNG (4K · 3840px)';
+  dlPng.textContent = '⬇ 4K PNG (3840px)';
   dlPng.onclick = downloadOverlayPng;
   dlRow.appendChild(dlPng);
 
+  const dl1080 = document.createElement('button');
+  dl1080.className = 'ov-dl-btn';
+  dl1080.textContent = '⬇ Social PNG (1920px)';
+  dl1080.onclick = () => downloadOverlayAtSize(1920, 'manza-banner-1920.png', dl1080);
+  dlRow.appendChild(dl1080);
+
   const dlHint = document.createElement('span');
   dlHint.style.cssText = 'color:var(--muted);font-size:11px';
-  dlHint.textContent = 'Import PNG into Premiere as overlay layer · use Multiply blend mode to drop the black';
+  dlHint.textContent = '4K → Premiere (Multiply blend) · 1920px → Instagram/Twitter';
   dlRow.appendChild(dlHint);
   ctrls.appendChild(dlRow);
 
@@ -1432,30 +1489,27 @@ function makeDraggablePhoto(wrap, handle, container, photo) {
   });
 }
 
-async function downloadOverlayPng() {
+async function downloadOverlayAtSize(px, filename, btn) {
   const el = document.getElementById('ovScaleInner');
   if (!el || typeof html2canvas === 'undefined') { alert('Export not ready — reload and try again.'); return; }
-  const btn = document.getElementById('ovDownloadLoop');
-  if (btn) btn.textContent = 'Rendering 4K…';
+  if (btn) btn.textContent = 'Rendering…';
   try {
-    // el is natural-width (no transform). Scale it UP to exactly 3840px output.
-    const exportScale = 3840 / el.offsetWidth;
+    const exportScale = px / el.offsetWidth;
     const canvas = await html2canvas(el, {
-      scale: exportScale,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: OV.bgColor,
-      logging: false,
-      imageTimeout: 0
+      scale: exportScale, useCORS: true, allowTaint: true,
+      backgroundColor: OV.bgColor, logging: false, imageTimeout: 0
     });
     const a = document.createElement('a');
-    a.download = 'manza-banner-4k.png';
+    a.download = filename;
     a.href = canvas.toDataURL('image/png');
     a.click();
-  } catch(e) {
-    alert('PNG export failed: ' + e.message);
-  }
-  if (btn) btn.textContent = '⬇ Download PNG (4K · 3840px)';
+  } catch(e) { alert('PNG export failed: ' + e.message); }
+  if (btn) btn.textContent = btn.dataset.label || btn.textContent;
+}
+async function downloadOverlayPng() {
+  const btn = document.getElementById('ovDownloadLoop');
+  await downloadOverlayAtSize(3840, 'manza-banner-4k.png', btn);
+  if (btn) btn.textContent = '⬇ 4K PNG (3840px)';
 }
 
 async function downloadOverlayLoop() {

@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Manza Hoops Daily Briefs</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#161a21; --panel2:#1d222b; --line:#272e39;
+    --text:#e8ecf3; --muted:#8b95a6; --accent:#ff6b1a; --accent2:#ffb020;
+    --chip:#232a35; --good:#2fbf71; --warn:#ffb020;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--text);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  a{color:var(--accent2);text-decoration:none} a:hover{text-decoration:underline}
+  .app{display:grid;grid-template-columns:320px 1fr;height:100vh;transition:grid-template-columns .2s ease}
+  .app.sidebar-collapsed{grid-template-columns:0px 1fr}
+
+  /* Sidebar / cabinet */
+  .cabinet{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;overflow:hidden;transition:border-width .2s}
+  .app.sidebar-collapsed .cabinet{border-right-width:0}
+  .brand{padding:16px 18px 12px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:8px}
+  .brand-text{flex:1;min-width:0}
+  .brand h1{margin:0;font-size:16px;letter-spacing:.2px}
+  .brand .sub{color:var(--muted);font-size:12px;margin-top:3px}
+  .sidebar-toggle{position:fixed;top:14px;left:12px;z-index:40;background:var(--panel2);border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:6px 9px;font-size:15px;cursor:pointer;line-height:1;transition:left .2s ease}
+  .sidebar-toggle:hover{color:var(--text);border-color:var(--accent)}
+  .app:not(.sidebar-collapsed) .sidebar-toggle{left:286px}
+  .toolbar{padding:10px 14px;display:flex;gap:8px;border-bottom:1px solid var(--line)}
+  .toolbar input{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:7px 10px;font-size:13px;outline:none}
+  .toolbar input:focus{border-color:var(--accent)}
+  .btn{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:7px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+  .btn:hover{border-color:var(--accent)}
+  .btn.primary{background:linear-gradient(180deg,var(--accent),#e85d10);border-color:transparent;color:#fff;font-weight:600}
+  .tree{overflow:auto;padding:8px 8px 40px;min-height:0;flex:1}
+  .season{margin:6px 4px}
+  .season>.hdr{display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 8px;border-radius:8px;font-weight:700;color:#fff}
+  .season>.hdr:hover{background:var(--panel2)}
+  .season .count{color:var(--muted);font-weight:500;font-size:12px;margin-left:auto}
+  .month{margin:2px 0 2px 10px}
+  .month>.hdr{display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 8px;border-radius:7px;color:var(--muted);font-size:13px;font-weight:600}
+  .month>.hdr:hover{background:var(--panel2);color:var(--text)}
+  .day{display:flex;align-items:center;gap:8px;margin:2px 0 2px 22px;padding:7px 9px;border-radius:7px;cursor:pointer;font-size:13px}
+  .day:hover{background:var(--panel2)}
+  .day.active{background:var(--chip);outline:1px solid var(--accent)}
+  .day .d{font-weight:600}
+  .day .dow{color:var(--muted);font-size:12px}
+  .caret{display:inline-block;width:12px;transition:transform .15s;color:var(--muted)}
+  .collapsed .caret{transform:rotate(-90deg)}
+  .collapsed .body{display:none}
+  .chip{font-size:10.5px;padding:2px 7px;border-radius:999px;background:var(--chip);border:1px solid var(--line);color:var(--accent2);white-space:nowrap;margin-left:auto}
+
+  /* Main */
+  .main{min-width:0;display:flex;flex-direction:column;min-height:0}
+  .mhead{padding:18px 26px 12px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap}
+  .app.sidebar-collapsed .mhead{padding-left:54px}
+  .mhead h2{margin:0;font-size:20px}
+  .mhead .meta{color:var(--muted);font-size:13px;margin-top:4px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .mhead .spacer{flex:1}
+  .actions{display:flex;gap:8px;align-items:center}
+  .tabs{display:flex;gap:4px;padding:10px 26px 0}
+  .tab{padding:8px 14px;border-radius:8px 8px 0 0;cursor:pointer;color:var(--muted);font-size:14px;border:1px solid transparent;border-bottom:none}
+  .tab.active{color:var(--text);background:var(--panel);border-color:var(--line)}
+  .content{overflow:auto;padding:22px 30px 60px;flex:1;min-height:0}
+  .doc{max-width:820px}
+  .doc h1{font-size:24px;margin:.2em 0 .4em} .doc h2{font-size:18px;margin:1.3em 0 .5em;padding-bottom:6px;border-bottom:1px solid var(--line)}
+  .doc h3{font-size:15px;color:var(--accent2);margin:1em 0 .4em;letter-spacing:.2px}
+  .doc ul{padding-left:20px;margin:.4em 0} .doc li{margin:.28em 0}
+  .doc hr{border:none;border-top:1px solid var(--line);margin:1.4em 0}
+  .doc code{background:var(--panel2);padding:1px 6px;border-radius:5px;font-size:13px}
+  .doc blockquote{border-left:3px solid var(--accent);margin:.6em 0;padding:.2em 14px;color:var(--muted)}
+  .doc strong{color:#fff}
+  .scripttext{max-width:820px;white-space:pre-wrap;font-size:17px;line-height:1.75}
+  .blank-wrap{max-width:820px;display:flex;flex-direction:column;gap:12px;height:calc(100vh - 200px)}
+  .blank-wrap textarea{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:16px;font-size:16px;line-height:1.7;resize:none;outline:none;font-family:inherit}
+  .blank-wrap textarea:focus{border-color:var(--accent)}
+  .blank-wrap textarea::placeholder{color:var(--muted)}
+  .blank-wrap .blank-actions{display:flex;gap:10px;align-items:center}
+  .blank-wrap .blank-hint{color:var(--muted);font-size:12px;margin-left:4px}
+  .empty{color:var(--muted);text-align:center;margin-top:16vh}
+  .empty .big{font-size:44px;margin-bottom:10px}
+
+  /* Teleprompter */
+  .tp{position:fixed;inset:0;background:#000;z-index:50;display:none;flex-direction:column}
+  .tp.open{display:flex}
+  .tp-scroll{flex:1;overflow:hidden;position:relative}
+  .tp-inner{position:absolute;left:0;right:0;padding:60vh 8vw;text-align:center;color:#fff;font-weight:700;letter-spacing:.3px;will-change:transform}
+  .tp-inner p{margin:0 0 .7em}
+  .tp-guide{position:absolute;left:0;right:0;top:38%;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.5}
+  .tp-ctrl{background:#0b0d10;border-top:1px solid #222;padding:12px 18px;display:flex;gap:18px;align-items:center;flex-wrap:wrap;justify-content:center}
+  .tp-ctrl .grp{display:flex;gap:9px;align-items:center;font-size:13px;color:var(--muted)}
+  .tp-ctrl input[type=range]{width:150px;accent-color:var(--accent)}
+  .tp-ctrl .btn{min-width:44px;text-align:center}
+  .tp-ctrl .big{font-size:16px;font-weight:700}
+  .toggle{cursor:pointer;user-select:none;padding:7px 12px;border-radius:8px;border:1px solid var(--line);color:var(--muted)}
+  .toggle.on{color:#fff;border-color:var(--accent);background:rgba(255,107,26,.15)}
+  .hint{position:absolute;top:14px;left:0;right:0;text-align:center;color:#555;font-size:12px}
+
+  /* YouTube modal */
+  .yt-modal{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:60;display:none;align-items:center;justify-content:center;padding:20px}
+  .yt-modal.open{display:flex}
+  .yt-box{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:100%;max-width:660px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+  .yt-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line);font-weight:700;font-size:15px}
+  .yt-body{overflow:auto;padding:18px;display:flex;flex-direction:column;gap:16px}
+  .tab-tp-bar{padding:16px 26px 24px;display:flex;align-items:center;gap:14px;border-top:1px solid var(--line);margin-top:8px}
+  .tab-tp-hint{color:var(--muted);font-size:12px}
+  .yt-section{}
+  .yt-label{font-size:11px;font-weight:700;letter-spacing:.8px;color:var(--muted);text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;gap:10px}
+  .yt-label button{font-size:11px;padding:2px 9px;border-radius:6px;background:var(--panel2);border:1px solid var(--line);color:var(--text);cursor:pointer;white-space:nowrap}
+  .yt-label button:hover{border-color:var(--accent)}
+  .yt-label button.copied{color:var(--good);border-color:var(--good)}
+  .yt-field{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:11px 13px;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word;color:var(--text);outline:none;min-height:1.6em}
+  .yt-field[contenteditable=true]:focus{border-color:var(--accent2)}
+  .yt-field[contenteditable=true]:hover:not(:focus){border-color:var(--muted)}
+  .yt-titles{display:flex;flex-direction:column;gap:6px}
+  .yt-title-row{display:flex;align-items:stretch;gap:8px}
+  .yt-title-row .yt-field{flex:1;cursor:pointer;user-select:none}
+  .yt-title-row .yt-field:hover:not([contenteditable=true]){border-color:var(--accent)}
+  .yt-title-row .yt-field.copied{border-color:var(--good)}
+  .yt-title-row .yt-field[contenteditable=true]{cursor:text;user-select:text}
+  .yt-add-title{background:none;border:1px dashed var(--line);border-radius:8px;color:var(--muted);font-size:12px;padding:7px 12px;cursor:pointer;text-align:left;width:100%}
+  .yt-add-title:hover{border-color:var(--accent);color:var(--text)}
+  .yt-hint{font-size:10px;color:var(--muted);margin-top:3px;margin-left:2px}
+
+  /* ─────────────────────────────────────────
+     OVERLAY TAB
+  ───────────────────────────────────────── */
+  .ov-wrap{max-width:820px;display:flex;flex-direction:column;gap:20px}
+
+  /* topic toggle pills */
+  .ov-topics{display:flex;gap:7px;flex-wrap:wrap}
+  .ov-topic{background:var(--chip);border:1px solid var(--line);color:var(--muted);border-radius:20px;padding:6px 14px;font-size:12.5px;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .12s}
+  .ov-topic:hover{border-color:var(--accent);color:var(--text)}
+  .ov-topic.active{background:#e8000d;border-color:#e8000d;color:#fff}
+  .ov-topic.active.gold{background:#f5a623;border-color:#f5a623}
+  .ov-topic.active.blue{background:#1565c0;border-color:#1565c0}
+
+  /* banner preview */
+  .ov-preview-label{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-family:Arial,sans-serif}
+  .ov-preview-wrap{border-radius:6px;box-shadow:0 8px 36px rgba(0,0,0,.55);overflow:visible}
+  .ov-banner{display:flex;align-items:stretch;background:var(--ov-bg,#0d0d0d);border-left:6px solid var(--ov-clr,#e8000d);min-height:82px}
+  .ov-body{flex:1;padding:14px 20px;display:flex;flex-direction:column;gap:5px;justify-content:center}
+  .ov-tag-row{display:flex;align-items:center;gap:9px}
+  .ov-tag{background:var(--ov-clr,#e8000d);color:#fff;font-size:10px;font-weight:900;letter-spacing:2.5px;padding:2px 8px;text-transform:uppercase;font-family:Arial,sans-serif}
+  .ov-headline-el{color:#fff;font:900 22px/1.1 "Arial Black",Impact,Arial,sans-serif;text-transform:uppercase;letter-spacing:-.3px;word-break:break-word}
+  .ov-sub-el{color:#aaa;font:13px/1.4 Arial,sans-serif;margin-top:2px}
+  .ov-brand{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 16px;border-left:1px solid #222;flex-shrink:0;gap:5px;min-width:68px}
+  .ov-brand-img{width:38px;height:38px;object-fit:contain;border-radius:4px;display:none}
+  .ov-brand-icon{font-size:22px;line-height:1}
+  .ov-brand-name{color:#555;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;font-family:Arial,sans-serif;text-align:center;line-height:1.4}
+  /* bottom bar (static) */
+  .ov-ticker{background:var(--ov-clr,#e8000d);height:34px;display:flex;align-items:center;justify-content:center;padding:0 24px}
+  .ov-ticker-text{color:#fff;font:700 12px/1 Arial,sans-serif;letter-spacing:1.2px;text-transform:uppercase;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .ov-sep{color:rgba(255,255,255,.4)}
+  /* bg image overlay */
+  .ov-banner-bg{position:absolute;inset:0;object-fit:cover;opacity:.18;pointer-events:none;display:none}
+  .ov-preview-wrap{position:relative}
+
+  /* control rows */
+  .ov-ctrls{display:flex;flex-direction:column;gap:12px}
+  .ov-section-label{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-family:Arial,sans-serif;margin-bottom:4px}
+  .ov-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .ov-row-label{color:var(--muted);font-size:12px;min-width:82px;flex-shrink:0}
+  .ov-input{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:7px;padding:7px 11px;font-size:13px;flex:1;min-width:140px;font-family:inherit;outline:none}
+  .ov-input:focus{border-color:var(--accent)}
+  .ov-apply-btn{background:#e8000d;color:#fff;border:none;border-radius:7px;padding:7px 16px;font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;font-family:Arial,sans-serif;flex-shrink:0}
+  .ov-apply-btn:hover{background:#c40010}
+  /* theme buttons */
+  .ov-theme-btn{background:var(--chip);border:1px solid var(--line);color:var(--muted);border-radius:7px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit;transition:all .12s}
+  .ov-theme-btn:hover{border-color:var(--accent);color:var(--text)}
+  .ov-theme-btn[data-theme="red"].active{background:#e8000d;border-color:#e8000d;color:#fff}
+  .ov-theme-btn[data-theme="gold"].active{background:#f5a623;border-color:#f5a623;color:#fff}
+  .ov-theme-btn[data-theme="blue"].active{background:#1565c0;border-color:#1565c0;color:#fff}
+  /* range */
+  .ov-range{accent-color:var(--accent);width:130px;cursor:pointer}
+  .ov-range-val{color:var(--text);font-size:12px;min-width:24px}
+  /* animate toggle */
+  .ov-toggle{background:var(--chip);border:1px solid var(--line);color:var(--muted);border-radius:7px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit}
+  .ov-toggle.on{background:rgba(46,191,113,.15);border-color:var(--good);color:var(--good)}
+  /* upload areas */
+  .ov-upload{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px dashed var(--line);border-radius:8px;padding:8px 13px;cursor:pointer;font-size:12px;color:var(--muted);transition:border-color .12s}
+  .ov-upload:hover{border-color:var(--accent);color:var(--text)}
+  .ov-upload input[type=file]{display:none}
+  .ov-thumb{width:30px;height:30px;border-radius:4px;object-fit:contain;display:none}
+  .ov-clear-img{background:none;border:1px solid var(--line);color:var(--muted);border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;display:none}
+  .ov-clear-img:hover{border-color:var(--accent);color:var(--text)}
+
+  /* drag photo */
+  .ov-drag-photo{position:absolute;cursor:move;z-index:10;object-fit:contain;user-select:none;pointer-events:auto;border:2px solid transparent;box-sizing:border-box;transition:border-color .1s}
+  .ov-drag-photo:hover{border-color:rgba(255,255,255,.5)}
+  .ov-drag-photo .ov-ph-resize{position:absolute;bottom:-6px;right:-6px;width:14px;height:14px;background:#fff;border-radius:50%;cursor:se-resize;pointer-events:auto}
+
+  /* download buttons */
+  .ov-dl-btn{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:7px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .12s}
+  .ov-dl-btn:hover{border-color:var(--good);color:var(--good)}
+  .ov-dl-btn.rec{border-color:#e8000d;color:#e8000d}
+  .ov-dl-btn.rec:hover{background:#e8000d;color:#fff}
+
+  /* banner — natural width preview; html2canvas scales UP to 3840px on export */
+  .ov-banner-scaler{width:100%;overflow:hidden}
+  .ov-banner-inner-scale{width:100%;transform-origin:top left}
+  .ov-banner{display:flex;align-items:stretch;background:var(--ov-bg,#0d0d0d);border-left:none;min-height:80px;width:100%}
+  /* left accent stripe */
+  .ov-side{width:7px;background:var(--ov-clr,#e8000d);flex-shrink:0}
+  /* logo zone — always visible, fixed width reserved for logo placement */
+  .ov-logo-slot{display:flex;align-items:center;justify-content:center;width:100px;flex-shrink:0;padding:8px 10px;box-sizing:border-box}
+  .ov-logo-slot img{max-width:80px;max-height:70px;object-fit:contain;border-radius:3px;display:none}
+  .ov-logo-slot.has-logo img{display:block}
+  /* banner body — preview font sizes (export multiplies ~4-5x to 4K) */
+  .ov-headline-el{color:#fff;font:900 38px/1.1 "Arial Black",Impact,Arial,sans-serif;text-transform:uppercase;letter-spacing:-.5px;word-break:break-word}
+  .ov-sub-el{color:#bbb;font:17px/1.4 Arial,sans-serif;margin-top:2px}
+  .ov-body{flex:1;padding:12px 22px 12px 14px;display:flex;flex-direction:column;gap:4px;justify-content:center}
+  /* bottom bar — full width, bold and readable */
+  .ov-ticker{background:var(--ov-clr,#e8000d);height:36px;display:flex;align-items:center;justify-content:center;padding:0 22px;width:100%;box-sizing:border-box}
+  .ov-ticker-text{color:#fff;font:700 13px/1 Arial,sans-serif;letter-spacing:2.5px;text-transform:uppercase;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
+  /* draggable photo wrapper */
+  .ov-photo-wrap{position:absolute;cursor:move;z-index:10;user-select:none}
+  .ov-photo-wrap img{width:100%;height:auto;display:block;pointer-events:none}
+  .ov-photo-wrap:hover .ov-ph-handle{opacity:1}
+  .ov-ph-handle{position:absolute;bottom:-10px;right:-10px;width:24px;height:24px;background:#fff;border-radius:50%;cursor:se-resize;border:2px solid rgba(0,0,0,.35);opacity:0;transition:opacity .15s}
+  /* photo upload list */
+  .ov-photo-list{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start}
+  .ov-photo-thumb-wrap{position:relative;display:inline-flex}
+  .ov-photo-thumb-wrap img{width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+  .ov-photo-rm{position:absolute;top:-5px;right:-5px;background:#e8000d;color:#fff;border:none;border-radius:50%;width:16px;height:16px;font-size:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+  .ov-add-photo-btn{width:48px;height:48px;background:var(--panel2);border:1px dashed var(--line);border-radius:6px;color:var(--muted);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .12s}
+  .ov-add-photo-btn:hover{border-color:var(--accent);color:var(--text)}
+  /* (4K sizes above are authoritative — no overrides here) */
+  /* bottom bar preset pills */
+  .ov-bar-presets{display:flex;gap:6px;flex-wrap:wrap}
+  .ov-bar-preset{background:var(--chip);border:1px solid var(--line);color:var(--muted);border-radius:16px;padding:4px 11px;font-size:11px;cursor:pointer;font-family:inherit;transition:all .12s}
+  .ov-bar-preset:hover{border-color:var(--accent);color:var(--text)}
+  /* ov-tag 4K size defined above — no override */
+
+  /* sub-topic pills (individual signings) */
+  .ov-topic.sub{font-size:11px;padding:4px 10px;opacity:.8}
+  .ov-topic.sub.active{opacity:1}
+  .ov-topic-group-label{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:2px 4px;align-self:center;white-space:nowrap}
+
+  /* bg color swatches */
+  .ov-swatch{width:26px;height:26px;border-radius:6px;border:2px solid transparent;cursor:pointer;flex-shrink:0;transition:border-color .12s}
+  .ov-swatch.active{border-color:#fff}
+  .ov-swatch:hover{border-color:var(--muted)}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+<button class="sidebar-toggle" id="sidebarToggle" title="Toggle cabinet">☰</button>
+<div class="app sidebar-collapsed" id="app">
+  <aside class="cabinet">
+    <div class="brand">
+      <div class="brand-text">
+        <h1>🏀 Manza Hoops Daily Briefs</h1>
+        <div class="sub" id="sub">Daily News Database</div>
+      </div>
+    </div>
+    <div class="toolbar">
+      <input id="search" placeholder="Search dates / phase…" />
+      <button class="btn" id="refresh" title="Reload from folder">↻</button>
+    </div>
+    <div class="tree" id="tree"></div>
+  </aside>
+
+  <main class="main">
+    <div class="mhead">
+      <div>
+        <h2 id="title">Select a day</h2>
+        <div class="meta" id="meta"></div>
+      </div>
+      <div class="spacer"></div>
+      <div class="actions">
+        <button class="btn" id="copyScript">Copy script</button>
+        <button class="btn" id="openYt">📋 YouTube</button>
+        <button class="btn primary" id="openTp">▶ Teleprompter</button>
+      </div>
+    </div>
+    <div class="tabs">
+      <div class="tab active" data-tab="brief">Brief</div>
+      <div class="tab" data-tab="script">Script</div>
+      <div class="tab" data-tab="blank">Blank Teleprompter</div>
+      <div class="tab" data-tab="overlay">🎬 Overlay</div>
+    </div>
+    <div class="content" id="content">
+      <div class="empty"><div class="big">🗄️</div>Pick a day from the cabinet on the left.</div>
+    </div>
+  </main>
+</div>
+
+<!-- YouTube copy modal -->
+<div class="yt-modal" id="ytModal">
+  <div class="yt-box">
+    <div class="yt-header">
+      <span>📋 YouTube Copy Sheet</span>
+      <button class="btn" id="ytClose">✕</button>
+    </div>
+    <div class="yt-body" id="ytBody"></div>
+  </div>
+</div>
+
+<!-- Teleprompter -->
+<div class="tp" id="tp">
+  <div class="tp-scroll" id="tpScroll">
+    <div class="hint">Space = play/pause · ↑/↓ = speed · Esc = close</div>
+    <div class="tp-guide"></div>
+    <div class="tp-inner" id="tpInner"></div>
+  </div>
+  <div class="tp-ctrl">
+    <button class="btn primary big" id="tpPlay">▶ Play</button>
+    <button class="btn" id="tpRestart">⟲ Restart</button>
+    <div class="grp">Speed <input type="range" id="tpSpeed" min="10" max="180" value="60"><span id="tpSpeedV">60</span></div>
+    <div class="grp">Font <input type="range" id="tpFont" min="26" max="90" value="46"><span id="tpFontV">46</span></div>
+    <div class="toggle" id="tpMirror">Mirror</div>
+    <button class="btn" id="tpClose">✕ Close</button>
+  </div>
+</div>
+
+<script>
+// ---------- tiny markdown renderer ----------
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function inline(s){
+  s=esc(s);
+  s=s.replace(/`([^`]+)`/g,'<code>$1</code>');
+  s=s.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+  s=s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  s=s.replace(/(^|[^*])\*([^*]+)\*/g,'$1<em>$2</em>');
+  return s;
+}
+function mdToHtml(md){
+  const lines=md.split('\n'); let html=''; let inList=false;
+  const closeList=()=>{ if(inList){html+='</ul>';inList=false;} };
+  for(let raw of lines){
+    const line=raw.replace(/\s+$/,'');
+    if(/^\s*---\s*$/.test(line)){closeList();html+='<hr>';continue;}
+    let m;
+    if(m=line.match(/^###\s+(.*)/)){closeList();html+='<h3>'+inline(m[1])+'</h3>';continue;}
+    if(m=line.match(/^##\s+(.*)/)){closeList();html+='<h2>'+inline(m[1])+'</h2>';continue;}
+    if(m=line.match(/^#\s+(.*)/)){closeList();html+='<h1>'+inline(m[1])+'</h1>';continue;}
+    if(m=line.match(/^>\s?(.*)/)){closeList();html+='<blockquote>'+inline(m[1])+'</blockquote>';continue;}
+    if(m=line.match(/^\s*[-*]\s+(.*)/)){ if(!inList){html+='<ul>';inList=true;} html+='<li>'+inline(m[1])+'</li>';continue;}
+    if(line.trim()===''){closeList();continue;}
+    closeList();html+='<p>'+inline(line)+'</p>';
+  }
+  closeList();return html;
+}
+
+// ---------- state ----------
+let BRIEFS=[]; let current=null; let currentTab='brief';
+const DOW=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+function parseDate(s){const[y,m,d]=s.split('-').map(Number);return new Date(Date.UTC(y,m-1,d));}
+function seasonLabel(s){const[y,m]=s.split('-').map(Number);const sy=m>=7?y:y-1;return sy+'–'+String(sy+1).slice(2)+' Season';}
+function monthLabel(s){const[y,m]=s.split('-').map(Number);return MONTHS[m-1]+' '+y;}
+function dowLabel(s){return DOW[parseDate(s).getUTCDay()];}
+function dayNum(s){return Number(s.split('-')[2]);}
+
+// ---------- cabinet ----------
+const collapsed = new Set();
+function buildTree(filter){
+  const tree=document.getElementById('tree'); tree.innerHTML='';
+  const f=(filter||'').toLowerCase();
+  const items=BRIEFS.filter(b=> !f || b.date.includes(f) || (b.phase||'').toLowerCase().includes(f) || dowLabel(b.date).toLowerCase().includes(f));
+  const seasons={};
+  for(const b of items){
+    const sk=seasonLabel(b.date); const mk=monthLabel(b.date);
+    (seasons[sk]=seasons[sk]||{}); (seasons[sk][mk]=seasons[sk][mk]||[]).push(b);
+  }
+  const sKeys=Object.keys(seasons).sort().reverse();
+  if(sKeys.length===0){ tree.innerHTML='<div style="color:var(--muted);padding:16px;font-size:13px">No briefs match.</div>'; return; }
+  for(const sk of sKeys){
+    const scount=Object.values(seasons[sk]).reduce((a,x)=>a+x.length,0);
+    const sEl=document.createElement('div'); sEl.className='season'+(collapsed.has(sk)?' collapsed':'');
+    sEl.innerHTML='<div class="hdr"><span class="caret">▾</span>'+sk+'<span class="count">'+scount+'</span></div><div class="body"></div>';
+    sEl.querySelector('.hdr').onclick=()=>{toggle(sk);buildTree(document.getElementById('search').value);};
+    const sBody=sEl.querySelector('.body');
+    const mKeys=Object.keys(seasons[sk]).sort((a,b)=>new Date(b)-new Date(a));
+    for(const mk of mKeys){
+      const key=sk+'|'+mk;
+      const mEl=document.createElement('div'); mEl.className='month'+(collapsed.has(key)?' collapsed':'');
+      mEl.innerHTML='<div class="hdr"><span class="caret">▾</span>'+mk+'</div><div class="body"></div>';
+      mEl.querySelector('.hdr').onclick=()=>{toggle(key);buildTree(document.getElementById('search').value);};
+      const mBody=mEl.querySelector('.body');
+      for(const b of seasons[sk][mk].sort((a,b)=>dayNum(b.date)-dayNum(a.date))){
+        const d=document.createElement('div'); d.className='day'+(current&&current.date===b.date?' active':'');
+        d.innerHTML='<span class="d">'+dayNum(b.date)+'</span><span class="dow">'+dowLabel(b.date)+'</span>'+(b.phase?'<span class="chip">'+shortPhase(b.phase)+'</span>':'');
+        d.onclick=()=>selectBrief(b.file); mBody.appendChild(d);
+      }
+      sBody.appendChild(mEl);
+    }
+    tree.appendChild(sEl);
+  }
+}
+function toggle(k){ collapsed.has(k)?collapsed.delete(k):collapsed.add(k); }
+function shortPhase(p){ p=p.replace(/\(.*\)/,'').trim(); return p.length>18?p.slice(0,17)+'…':p; }
+
+// ---------- load / select ----------
+async function loadList(){
+  const r=await fetch('/api/briefs'); const j=await r.json();
+  BRIEFS=j.briefs||[];
+  document.getElementById('sub').textContent='Daily News Database · '+j.count+' brief'+(j.count===1?'':'s');
+  buildTree(document.getElementById('search').value);
+  if(!current && BRIEFS[0]) selectBrief(BRIEFS[0].file);
+}
+async function selectBrief(file){
+  const r=await fetch('/api/brief?file='+encodeURIComponent(file)); current=await r.json();
+  // reset overlay state so opener summary regenerates for the new brief
+  OV.headline=''; OV.subtext=''; OV.activeTopicIdx=0; OV.bottomBar=''; OV.topics=[]; OV.photos=[];
+  const displayTitle=(current.title||current.date).replace(/\s*[—–-]+\s*.*/,'').replace(/\bCUE SHEET\b/gi,'').trim();
+  document.getElementById('title').textContent=displayTitle;
+  document.getElementById('meta').innerHTML=
+    dowLabel(current.date)+', '+monthLabel(current.date).replace(/(\d{4})/,dayNum(current.date)+', $1')+
+    ' &nbsp;·&nbsp; '+seasonLabel(current.date)+
+    (current.phase?' &nbsp;<span class="chip" style="margin:0">'+current.phase+'</span>':'');
+  buildTree(document.getElementById('search').value);
+  if(currentTab==='overlay') renderOverlayTab();
+  else renderTab();
+}
+function renderTab(){
+  const c=document.getElementById('content');
+  if(currentTab==='blank'){
+    if(!c.querySelector('.blank-wrap')){
+      c.innerHTML=`<div class="blank-wrap">
+        <textarea id="blankScript" placeholder="Paste or type any script here, then hit Launch…" spellcheck="false"></textarea>
+        <div class="blank-actions">
+          <button class="btn primary" id="blankLaunch">▶ Launch Teleprompter</button>
+          <button class="btn" id="blankClear">Clear</button>
+          <span class="blank-hint">Space = play/pause · ↑/↓ = speed · Esc = close</span>
+        </div>
+      </div>`;
+      document.getElementById('blankLaunch').onclick=()=>{
+        const txt=document.getElementById('blankScript').value.trim();
+        if(!txt){alert('Type or paste a script first.');return;}
+        openTpWithText(txt);
+      };
+      document.getElementById('blankClear').onclick=()=>{ document.getElementById('blankScript').value=''; };
+    }
+    return;
+  }
+  if(currentTab==='overlay'){ renderOverlayTab(); return; }
+  if(!current){return;}
+  if(currentTab==='script'){
+    c.innerHTML='<div class="scripttext"></div><div class="tab-tp-bar"><button class="btn primary tab-tp-btn">▶ Launch Teleprompter</button><span class="tab-tp-hint">Space = play/pause · ↑/↓ = speed · Esc = close</span></div>';
+    c.querySelector('.scripttext').textContent=current.script||'No teleprompter script in this brief yet.';
+    c.querySelector('.tab-tp-btn').onclick=openTp;
+  } else {
+    c.innerHTML='<div class="doc">'+mdToHtml(current.markdown)+'</div><div class="tab-tp-bar"><button class="btn primary tab-tp-btn">▶ Launch Teleprompter</button><span class="tab-tp-hint">Reads the brief content</span></div>';
+    c.querySelector('.tab-tp-btn').onclick=()=>openTpWithText(current.markdown);
+  }
+  c.scrollTop=0;
+}
+
+// ---------- tabs ----------
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active'); currentTab=t.dataset.tab; renderTab();
+});
+document.getElementById('search').oninput=e=>buildTree(e.target.value);
+document.getElementById('refresh').onclick=loadList;
+document.getElementById('copyScript').onclick=()=>{
+  if(current&&current.script){navigator.clipboard.writeText(current.script);
+    const b=document.getElementById('copyScript');b.textContent='Copied!';setTimeout(()=>b.textContent='Copy script',1200);}
+};
+
+// ---------- teleprompter ----------
+const tp=document.getElementById('tp'), tpInner=document.getElementById('tpInner'), tpScroll=document.getElementById('tpScroll');
+let tpPlaying=false, tpPos=0, tpSpeed=60, tpRAF=null, tpLast=0;
+function openTpWithText(text){
+  tpInner.innerHTML=text.split(/\n{2,}/).map(p=>'<p>'+esc(p.trim()).replace(/\n/g,' ')+'</p>').join('');
+  tp.classList.add('open'); tpPos=0; applyPos(); setPlaying(true);
+}
+function openTp(){
+  if(!current||!current.script){alert('No script for this day yet.');return;}
+  openTpWithText(current.script);
+}
+function closeTp(){ setPlaying(false); tp.classList.remove('open'); }
+function applyPos(){ const m=tp.classList.contains('mirror')?'scaleX(-1) ':''; tpInner.style.transform=m+'translateY('+(-tpPos)+'px)'; }
+function maxPos(){ return tpInner.scrollHeight - tpScroll.clientHeight*0.15; }
+function setPlaying(p){ tpPlaying=p; document.getElementById('tpPlay').textContent=p?'∥ Pause':'▶ Play';
+  if(p){ tpLast=performance.now(); tpRAF=requestAnimationFrame(tick);} else if(tpRAF){cancelAnimationFrame(tpRAF);tpRAF=null;} }
+function tick(now){ const dt=(now-tpLast)/1000; tpLast=now; tpPos+=tpSpeed*dt;
+  if(tpPos>=maxPos()){tpPos=maxPos();applyPos();setPlaying(false);return;} applyPos(); tpRAF=requestAnimationFrame(tick); }
+document.getElementById('openTp').onclick=()=>{
+  if(currentTab==='script') openTp();
+  else if(currentTab==='brief') { if(!current||!current.markdown){alert('No brief loaded.');return;} openTpWithText(current.markdown); }
+  else openTp();
+};
+document.getElementById('tpClose').onclick=closeTp;
+document.getElementById('tpPlay').onclick=()=>setPlaying(!tpPlaying);
+document.getElementById('tpRestart').onclick=()=>{tpPos=0;applyPos();setPlaying(true);};
+const speedR=document.getElementById('tpSpeed');
+speedR.oninput=e=>{tpSpeed=+e.target.value;document.getElementById('tpSpeedV').textContent=tpSpeed;};
+const fontR=document.getElementById('tpFont');
+fontR.oninput=e=>{tpInner.style.fontSize=e.target.value+'px';document.getElementById('tpFontV').textContent=e.target.value;};
+tpInner.style.fontSize='46px';
+document.getElementById('tpMirror').onclick=e=>{tp.classList.toggle('mirror');e.target.classList.toggle('on');applyPos();};
+document.addEventListener('keydown',e=>{
+  if(!tp.classList.contains('open'))return;
+  if(e.code==='Space'){e.preventDefault();setPlaying(!tpPlaying);}
+  else if(e.code==='Escape'){closeTp();}
+  else if(e.code==='ArrowUp'){tpSpeed=Math.min(180,tpSpeed+8);speedR.value=tpSpeed;document.getElementById('tpSpeedV').textContent=tpSpeed;}
+  else if(e.code==='ArrowDown'){tpSpeed=Math.max(10,tpSpeed-8);speedR.value=tpSpeed;document.getElementById('tpSpeedV').textContent=tpSpeed;}
+});
+tpScroll.addEventListener('wheel',e=>{
+  e.preventDefault();
+  tpPos=Math.max(0,Math.min(maxPos(),tpPos+e.deltaY*0.8));
+  applyPos();
+},{passive:false});
+
+// ---------- YouTube modal ----------
+const ytModal = document.getElementById('ytModal');
+document.getElementById('ytClose').onclick = () => ytModal.classList.remove('open');
+ytModal.addEventListener('click', e => { if (e.target === ytModal) ytModal.classList.remove('open'); });
+
+function flashCopied(el) {
+  el.classList.add('copied');
+  setTimeout(() => el.classList.remove('copied'), 1400);
+}
+function copyText(text, el) {
+  navigator.clipboard.writeText(text);
+  flashCopied(el);
+}
+function fieldText(el) { return el.innerText || el.textContent || ''; }
+
+function buildYtDescription(yt, current) {
+  const dateObj = parseDate(current.date);
+  const dateStr = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  const bullets = (yt.breakingBullets || []).map(b => '▸ ' + b).join('\n');
+  const phase = current.phase ? current.phase + ' · ' : '';
+  return [
+    bullets,
+    '',
+    '📅 ' + dateStr + ' | ' + phase + 'Manza Hoops',
+    '',
+    '🏀 Daily NBA breakdowns from Lithuania. Drop a like if you\'re keeping up!',
+    '',
+    '📲 Follow me on social @Manza.xmc',
+    '',
+    '🔔 Subscribe for the daily rundown: @ManzaHoops',
+  ].join('\n').trim();
+}
+
+function makeEditableSection(body, labelText, initialText) {
+  const sec = document.createElement('div');
+  sec.className = 'yt-section';
+  const lbl = document.createElement('div');
+  lbl.className = 'yt-label';
+  const labelSpan = document.createElement('span');
+  labelSpan.textContent = labelText;
+  lbl.appendChild(labelSpan);
+  const copyBtn = document.createElement('button');
+  copyBtn.textContent = 'Copy';
+  copyBtn.onclick = () => copyText(fieldText(field), copyBtn);
+  lbl.appendChild(copyBtn);
+  const field = document.createElement('div');
+  field.className = 'yt-field';
+  field.contentEditable = 'true';
+  field.textContent = initialText;
+  sec.appendChild(lbl);
+  sec.appendChild(field);
+  body.appendChild(sec);
+  return field;
+}
+
+function makeTitlesSection(body, titles) {
+  const sec = document.createElement('div');
+  sec.className = 'yt-section';
+  const lbl = document.createElement('div');
+  lbl.className = 'yt-label';
+  lbl.innerHTML = '<span>Title</span>';
+  const hint = document.createElement('div');
+  hint.className = 'yt-hint';
+  hint.textContent = 'click to copy · double-click to edit';
+  const rows = document.createElement('div');
+  rows.className = 'yt-titles';
+  function addTitleRow(text) {
+    const row = document.createElement('div');
+    row.className = 'yt-title-row';
+    const field = document.createElement('div');
+    field.className = 'yt-field';
+    field.textContent = text;
+    field.onclick = () => { if(field.contentEditable==='true')return; copyText(fieldText(field),field); };
+    field.ondblclick = () => { field.contentEditable='true'; field.focus(); };
+    field.onblur = () => { field.contentEditable='false'; };
+    field.onkeydown = e => {
+      if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();field.blur();}
+      if(e.key==='Escape'){field.blur();}
+    };
+    field.contentEditable='false';
+    row.appendChild(field);
+    rows.appendChild(row);
+  }
+  (titles||[]).forEach(t=>addTitleRow(t));
+  const addBtn=document.createElement('button');
+  addBtn.className='yt-add-title';
+  addBtn.textContent='+ Add title option';
+  addBtn.onclick=()=>{
+    addTitleRow('');
+    const newField=rows.lastElementChild.querySelector('.yt-field');
+    newField.contentEditable='true';
+    newField.focus();
+  };
+  sec.appendChild(lbl);
+  sec.appendChild(hint);
+  sec.appendChild(rows);
+  rows.appendChild(addBtn);
+  body.appendChild(sec);
+}
+
+document.getElementById('openYt').onclick = () => {
+  if(!current)return;
+  const yt=current.youtube||{};
+  const body=document.getElementById('ytBody');
+  body.innerHTML='';
+  makeTitlesSection(body,yt.titles||[]);
+  makeEditableSection(body,'Description',buildYtDescription(yt,current));
+  makeEditableSection(body,'Tags',(yt.tags||[]).join(', '));
+  if(yt.thumbnails&&yt.thumbnails.length) makeEditableSection(body,'Thumbnail text',yt.thumbnails.join(' · '));
+  if(yt.angles&&yt.angles.length) makeEditableSection(body,'Content angles',yt.angles.join('\n'));
+  ytModal.classList.add('open');
+  body.scrollTop=0;
+};
+
+// ---------- sidebar toggle ----------
+document.getElementById('sidebarToggle').onclick=()=>{
+  document.getElementById('app').classList.toggle('sidebar-collapsed');
+};
+
+// ═══════════════════════════════════════════════════════
+//  OVERLAY TAB
+// ═══════════════════════════════════════════════════════
+
+// Overlay state
+const OV = {
+  theme: 'red',
+  themeColors: { red:'#e8000d', gold:'#f5a623', blue:'#1565c0', orange:'#e85400', navy:'#1a3a6b' },
+  bgColor: '#0d0d0d',
+  bgPresets: [['#0d0d0d','#000'],['#0a1628','navy'],['#111827','slate'],['#1a0a00','ember']],
+  headline: '',
+  subtext: '',
+  bottomBar: '',
+  logoDataUrl: null,
+  bgDataUrl: null,
+  photos: [],
+  topics: [],
+  activeTopicIdx: 0,
+};
+
+// Parse sections from brief markdown into topic toggles
+function parseOverlayTopics(md) {
+  if (!md) return [];
+  const SECTION_MAP = [
+    { re:/BREAKING|TOP STORIES/i, label:'🔴 Breaking', tag:'BREAKING' },
+    { re:/INJURY|AVAILABILITY/i, label:'🚨 Injury', tag:'INJURY' },
+    { re:/FREE AGENCY|SIGNINGS|MOVES/i, label:'🏀 Free Agency', tag:'FA', isFA:true },
+    { re:/GAME RECAP|SUMMER LEAGUE/i, label:'🏀 Scores', tag:'SCORES' },
+    { re:/TRADE|RUMOR/i, label:'🔁 Trades', tag:'TRADES', isTrades:true },
+    { re:/QUOTE|DRAMA|SOCIAL/i, label:'🎤 Drama', tag:'DRAMA' },
+    { re:/LOOKING AHEAD/i, label:'📅 Ahead', tag:'AHEAD' },
+  ];
+  const lines = md.split('\n');
+  const sections = [];
+  let curSection = null;
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (/^##\s+/.test(line)) {
+      if (curSection) sections.push(curSection);
+      const heading = line.replace(/^##\s+/, '').replace(/[🔴🚨🏀🔁🎤📅💡🔗🎙️]/gu,'').trim();
+      const match = SECTION_MAP.find(m => m.re.test(heading));
+      curSection = {
+        label: match ? match.label : heading.slice(0,22),
+        tag:   match ? match.tag   : heading.slice(0,10).toUpperCase(),
+        rawHeading: heading,
+        bullets: [],
+        tableRows: [],
+        isFA: !!(match && match.isFA),
+        isTrades: !!(match && match.isTrades),
+      };
+    } else if (curSection && /^\|/.test(line)) {
+      const cells = line.split('|').map(c=>c.replace(/\*\*/g,'').replace(/\[([^\]]+)\]\([^)]+\)/g,'$1').trim()).filter(Boolean);
+      if (cells.length >= 3 && !/^[-:]+$/.test(cells[0]) && !/^Player/i.test(cells[0])) {
+        curSection.tableRows.push({ player:cells[0], deal:cells[1], team:cells[2] });
+      }
+    } else if (curSection && /^\s*[-*•]\s+/.test(line)) {
+      const clean = line
+        .replace(/^\s*[-*•]\s+/,'')
+        .replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1')
+        .replace(/\[([^\]]+)\]\([^)]+\)/g,'$1').replace(/`([^`]+)`/g,'$1')
+        .replace(/→\s*/g,'— ').replace(/>\s+.*$/,'').trim();
+      if (clean) curSection.bullets.push(clean);
+    }
+  }
+  if (curSection) sections.push(curSection);
+
+  const result = [];
+  for (const s of sections) {
+    const first = s.bullets[0] || s.rawHeading;
+    const headlineRaw = first.replace(/\s*[.—–:]\s+.*/,'').replace(/—.*/,'').trim().toUpperCase().slice(0,70);
+    const subRaw = (s.bullets[1]||s.bullets[0]||'').slice(0,110);
+    const sect = { label:s.label, tag:s.tag, headline:headlineRaw, subtext:subRaw, allBullets:s.bullets };
+    if (sect.headline) result.push(sect);
+
+    // Expand FA table rows as individual pills
+    if ((s.isFA || s.isTrades) && s.tableRows.length) {
+      for (const row of s.tableRows) {
+        const lastName = row.player.replace(/\bJr\.?\s*$/i,'').trim().split(' ').pop();
+        result.push({
+          label: lastName.slice(0,12),
+          tag: s.isFA ? 'SIGNING' : 'TRADE',
+          headline: (row.player + ' → ' + row.team).toUpperCase().slice(0,70),
+          subtext: row.deal,
+          allBullets: [row.player + ' → ' + row.team + '  ·  ' + row.deal],
+          isSub: true,
+        });
+      }
+      // Also expand confirmed trade bullets from trades section
+      if (s.isTrades && s.bullets.length) {
+        for (const b of s.bullets) {
+          if (/→|trade/i.test(b) && b.length < 120) {
+            const parts = b.split(/→|—/);
+            const lbl = parts[0].replace(/✅|confirmed|reported/gi,'').trim().split(' ').pop().slice(0,12);
+            result.push({
+              label: lbl,
+              tag: 'TRADE',
+              headline: b.replace(/✅\s*/,'').replace(/\s*\(.*$/,'').toUpperCase().slice(0,70),
+              subtext: b.replace(/.*\((.*)\).*/,'$1').slice(0,110),
+              allBullets: [b],
+              isSub: true,
+            });
+          }
+        }
+      }
+    }
+  }
+  return result.filter(s => s.headline);
+}
+
+// Generate engagement prompt presets based on active topic
+function buildBarPresets(topic) {
+  const SOCIAL = 'FOLLOW @MANZA.XMC ON IG FOR DAILY NBA';
+  const generic = [
+    'WHERE DO YOU THINK HE ENDS UP? DROP IT BELOW 👇',
+    'WHO WINS THIS TRADE? COMMENT YOUR TAKE',
+    'SUBSCRIBE FOR DAILY NBA UPDATES',
+    SOCIAL,
+    'LIKE IF YOU SAW THIS COMING',
+    'WHO GOT THE BETTER DEAL? COMMENT ⬇',
+  ];
+  if (!topic) return generic;
+  const h = topic.headline || '';
+  const tag = topic.tag || '';
+  const presets = [];
+  if (/LEBRON|JAMES/i.test(h)) {
+    presets.push('WHERE DOES LEBRON SIGN? DROP YOUR PICK 👇');
+    presets.push('WARRIORS OR SOMEWHERE ELSE? LET ME KNOW');
+  }
+  if (/TRAD|→/i.test(h) || tag === 'TRADE') {
+    presets.push('WHO WON THIS TRADE? COMMENT BELOW 👇');
+    presets.push('SMART MOVE OR HUGE MISTAKE? YOU DECIDE');
+  }
+  if (tag === 'SIGNING' || /SIGN|DEAL|MILLION/i.test(h)) {
+    presets.push('OVERPAID OR WORTH IT? DROP YOUR TAKE 👇');
+    presets.push('GOOD SIGNING? LIKE = YES  COMMENT = NO');
+  }
+  if (/BREAK/i.test(tag)) {
+    presets.push('THOUGHTS ON THIS? COMMENT BELOW 👇');
+    presets.push('BIGGEST MOVE OF FREE AGENCY SO FAR?');
+  }
+  presets.push(SOCIAL);
+  presets.push('SUBSCRIBE FOR DAILY NBA BREAKDOWNS');
+  presets.push('LIKE IF YOU\'RE FOLLOWING FREE AGENCY 👇');
+  return presets;
+}
+
+function ovColor() { return OV.themeColors[OV.theme] || '#e8000d'; }
+
+function renderOverlayTab() {
+  const c = document.getElementById('content');
+  if (!current) {
+    c.innerHTML = '<div class="empty"><div class="big">🎬</div>Load a brief first — topics will appear automatically.</div>';
+    return;
+  }
+
+  OV.topics = parseOverlayTopics(current.markdown);
+  // build opener summary from phase + top 2 breaking headlines
+  if (!OV.bottomBar) {
+    const phase = (current.phase || '').toUpperCase().replace(/OFFSEASON\s*\/\s*/i,'').trim();
+    const breaking = OV.topics.filter(t => t.tag === 'BREAKING' || !t.isSub).slice(0,2).map(t =>
+      t.headline.replace(/[.—–]+.*/,'').trim().slice(0,40)
+    ).filter(Boolean);
+    if (phase && breaking.length) {
+      OV.bottomBar = phase + '  ·  ' + breaking.join('  +  ');
+    } else if (breaking.length) {
+      OV.bottomBar = breaking.join('  ·  ');
+    } else {
+      OV.bottomBar = 'NBA DAILY BREAKDOWN  ·  MANZA HOOPS';
+    }
+  }
+  if (!OV.headline && OV.topics.length) {
+    OV.headline = OV.topics[0].headline;
+    OV.subtext  = OV.topics[0].subtext;
+    OV.activeTopicIdx = 0;
+  }
+
+  c.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'ov-wrap';
+  c.appendChild(wrap);
+
+  // ── Section label ──
+  const previewLbl = document.createElement('div');
+  previewLbl.className = 'ov-preview-label';
+  previewLbl.textContent = 'Topic';
+  wrap.appendChild(previewLbl);
+
+  // ── Topic toggles ──
+  const topicsRow = document.createElement('div');
+  topicsRow.className = 'ov-topics';
+
+  let lastGroupTag = null;
+  OV.topics.forEach((t, i) => {
+    // Group separator label between sections and sub-pills
+    if (t.isSub && lastGroupTag !== t.tag) {
+      const gl = document.createElement('span');
+      gl.className = 'ov-topic-group-label';
+      gl.textContent = t.tag === 'SIGNING' ? '— signings' : '— trades';
+      topicsRow.appendChild(gl);
+      lastGroupTag = t.tag;
+    } else if (!t.isSub) { lastGroupTag = null; }
+
+    const btn = document.createElement('button');
+    btn.className = 'ov-topic' + (t.isSub ? ' sub' : '') + (i === OV.activeTopicIdx ? ' active' : '');
+    btn.textContent = t.label;
+    btn.onclick = () => {
+      OV.activeTopicIdx = i;
+      OV.headline = t.headline;
+      OV.subtext  = t.subtext;
+      document.getElementById('ovHlInput').value  = OV.headline;
+      document.getElementById('ovSubInput').value = OV.subtext;
+      document.querySelectorAll('.ov-topic').forEach((b,j) => b.classList.toggle('active', j===i));
+      updateBanner();
+      // refresh preset pills for this topic
+      const presetsRow = document.querySelector('.ov-bar-presets');
+      if (presetsRow) {
+        presetsRow.innerHTML = '';
+        buildBarPresets(t).forEach(p => {
+          const pill = document.createElement('button');
+          pill.className = 'ov-bar-preset';
+          pill.textContent = p;
+          pill.onclick = () => {
+            OV.bottomBar = p;
+            const barInp = document.getElementById('ovBarInput');
+            if (barInp) barInp.value = p;
+            const el = document.getElementById('ovTickerText');
+            if (el) el.textContent = p;
+          };
+          presetsRow.appendChild(pill);
+        });
+      }
+    };
+    topicsRow.appendChild(btn);
+  });
+  const manualBtn = document.createElement('button');
+  manualBtn.className = 'ov-topic';
+  manualBtn.textContent = '✏️ Custom';
+  manualBtn.onclick = () => {
+    OV.activeTopicIdx = -1;
+    document.querySelectorAll('.ov-topic').forEach(b => b.classList.remove('active'));
+    manualBtn.classList.add('active');
+    document.getElementById('ovHlInput').focus();
+  };
+  topicsRow.appendChild(manualBtn);
+  wrap.appendChild(topicsRow);
+
+  // ── Banner preview label ──
+  const bannerLbl = document.createElement('div');
+  bannerLbl.className = 'ov-preview-label';
+  bannerLbl.style.marginTop = '4px';
+  bannerLbl.textContent = 'Live Preview';
+  wrap.appendChild(bannerLbl);
+
+  // ── Banner preview (1080px inner, scaled to container) ──
+  const scalerOuter = document.createElement('div');
+  scalerOuter.className = 'ov-banner-scaler';
+  scalerOuter.id = 'ovScalerOuter';
+
+  const previewWrap = document.createElement('div');
+  previewWrap.className = 'ov-preview-wrap';
+  previewWrap.id = 'ovPreviewWrap';
+  previewWrap.style.position = 'relative';
+
+  const scaleInner = document.createElement('div');
+  scaleInner.className = 'ov-banner-inner-scale';
+  scaleInner.id = 'ovScaleInner';
+
+  // optional bg image
+  const bgImg = document.createElement('img');
+  bgImg.className = 'ov-banner-bg';
+  bgImg.id = 'ovBgImg';
+  if (OV.bgDataUrl) { bgImg.src = OV.bgDataUrl; bgImg.style.display = 'block'; }
+  scaleInner.appendChild(bgImg);
+
+  const banner = document.createElement('div');
+  banner.className = 'ov-banner';
+  banner.id = 'ovBanner';
+  banner.style.cssText = `--ov-clr:${ovColor()};--ov-bg:${OV.bgColor};background:${OV.bgColor}`;
+
+  // thin left accent stripe
+  const side = document.createElement('div');
+  side.className = 'ov-side';
+  side.id = 'ovSide';
+  side.style.background = ovColor();
+  banner.appendChild(side);
+
+  // logo slot — hidden until logo uploaded
+  const logoSlot = document.createElement('div');
+  logoSlot.className = 'ov-logo-slot' + (OV.logoDataUrl ? ' has-logo' : '');
+  logoSlot.id = 'ovLogoSlot';
+  const logoSlotImg = document.createElement('img');
+  logoSlotImg.id = 'ovLogoSlotImg';
+  if (OV.logoDataUrl) logoSlotImg.src = OV.logoDataUrl;
+  logoSlot.appendChild(logoSlotImg);
+  banner.appendChild(logoSlot);
+
+  const body = document.createElement('div');
+  body.className = 'ov-body';
+  body.innerHTML = `
+    <div class="ov-headline-el" id="ovHeadlineEl">${OV.headline || 'HEADLINE GOES HERE'}</div>
+    <div class="ov-sub-el" id="ovSubEl">${OV.subtext || 'Subtext — tap a topic or type below'}</div>
+  `;
+  banner.appendChild(body);
+  scaleInner.appendChild(banner);
+
+  const ticker = document.createElement('div');
+  ticker.className = 'ov-ticker';
+  ticker.id = 'ovTicker';
+  ticker.style.background = ovColor();
+  const tickerText = document.createElement('div');
+  tickerText.className = 'ov-ticker-text';
+  tickerText.id = 'ovTickerText';
+  tickerText.textContent = OV.bottomBar || 'WHERE DO YOU THINK HE ENDS UP? DROP IT BELOW 👇';
+  ticker.appendChild(tickerText);
+  scaleInner.appendChild(ticker);
+
+  previewWrap.appendChild(scaleInner);
+
+  // draggable photos
+  renderDragPhotos(previewWrap);
+
+  scalerOuter.appendChild(previewWrap);
+  wrap.appendChild(scalerOuter);
+
+  // banner is natural 100% width — no transform needed
+
+  // bottom bar is static, no animation needed
+
+  // ── Controls ──
+  const ctrls = document.createElement('div');
+  ctrls.className = 'ov-ctrls';
+  wrap.appendChild(ctrls);
+
+  // Headline + subtext editor
+  const hlLbl = document.createElement('div');
+  hlLbl.className = 'ov-section-label';
+  hlLbl.textContent = 'Edit Headline';
+  ctrls.appendChild(hlLbl);
+
+  const hlRow = document.createElement('div');
+  hlRow.className = 'ov-row';
+  hlRow.innerHTML = `
+    <input class="ov-input" id="ovHlInput" type="text" placeholder="Headline (auto-caps)…" value="${OV.headline}">
+    <input class="ov-input" id="ovSubInput" type="text" placeholder="Subtext…" value="${OV.subtext}" style="font-size:12px">
+  `;
+  const applyBtn = document.createElement('button');
+  applyBtn.className = 'ov-apply-btn';
+  applyBtn.textContent = 'Apply';
+  applyBtn.onclick = applyManualHeadline;
+  hlRow.appendChild(applyBtn);
+  ctrls.appendChild(hlRow);
+
+  // live-apply on Enter
+  hlRow.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') applyManualHeadline(); });
+  });
+
+  // Accent color row
+  const themeLbl = document.createElement('div');
+  themeLbl.className = 'ov-section-label';
+  themeLbl.style.marginTop = '4px';
+  themeLbl.textContent = 'Accent Color';
+  ctrls.appendChild(themeLbl);
+
+  const themeRow = document.createElement('div');
+  themeRow.className = 'ov-row';
+  [['red','🔴 Red'],['gold','🟡 Gold'],['blue','🔵 Blue'],['orange','🟠 Orange'],['navy','🔷 Navy']].forEach(([t, lbl]) => {
+    const b = document.createElement('button');
+    b.className = 'ov-theme-btn' + (OV.theme === t ? ' active' : '');
+    b.dataset.theme = t;
+    b.style.setProperty('--thc', OV.themeColors[t]);
+    b.textContent = lbl;
+    b.onclick = () => {
+      OV.theme = t;
+      document.querySelectorAll('.ov-theme-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      updateBannerTheme();
+    };
+    themeRow.appendChild(b);
+  });
+  ctrls.appendChild(themeRow);
+
+  // Background color row
+  const bgLbl = document.createElement('div');
+  bgLbl.className = 'ov-section-label';
+  bgLbl.style.marginTop = '4px';
+  bgLbl.textContent = 'Background';
+  ctrls.appendChild(bgLbl);
+
+  const bgRow = document.createElement('div');
+  bgRow.className = 'ov-row';
+  bgRow.style.alignItems = 'center';
+  [['#0d0d0d','Black'],['#0a1628','Dark Navy'],['#111827','Slate'],['#1a0a00','Ember Dark']].forEach(([clr, name]) => {
+    const sw = document.createElement('div');
+    sw.className = 'ov-swatch' + (OV.bgColor === clr ? ' active' : '');
+    sw.style.background = clr;
+    sw.title = name;
+    sw.onclick = () => {
+      OV.bgColor = clr;
+      document.querySelectorAll('.ov-swatch').forEach(s => s.classList.remove('active'));
+      sw.classList.add('active');
+      updateBannerTheme();
+    };
+    bgRow.appendChild(sw);
+  });
+  // custom bg color picker
+  const bgPicker = document.createElement('input');
+  bgPicker.type = 'color';
+  bgPicker.value = OV.bgColor;
+  bgPicker.title = 'Custom background color';
+  bgPicker.style.cssText = 'width:26px;height:26px;border:none;border-radius:6px;cursor:pointer;padding:0;background:none';
+  bgPicker.oninput = e => {
+    OV.bgColor = e.target.value;
+    document.querySelectorAll('.ov-swatch').forEach(s => s.classList.remove('active'));
+    updateBannerTheme();
+  };
+  bgRow.appendChild(bgPicker);
+  ctrls.appendChild(bgRow);
+
+  // Bottom bar editor
+  const barLbl = document.createElement('div');
+  barLbl.className = 'ov-section-label';
+  barLbl.style.marginTop = '4px';
+  barLbl.textContent = 'Bottom Bar';
+  ctrls.appendChild(barLbl);
+
+  const barInputRow = document.createElement('div');
+  barInputRow.className = 'ov-row';
+  const barInput = document.createElement('input');
+  barInput.className = 'ov-input';
+  barInput.id = 'ovBarInput';
+  barInput.type = 'text';
+  barInput.placeholder = 'Type engagement text or pick a preset below…';
+  barInput.value = OV.bottomBar;
+  barInput.oninput = () => {
+    OV.bottomBar = barInput.value;
+    const el = document.getElementById('ovTickerText');
+    if (el) el.textContent = OV.bottomBar;
+  };
+  barInputRow.appendChild(barInput);
+  ctrls.appendChild(barInputRow);
+
+  // Preset pills
+  const presetsRow = document.createElement('div');
+  presetsRow.className = 'ov-bar-presets';
+  const activeTopic = OV.topics[OV.activeTopicIdx] || null;
+  buildBarPresets(activeTopic).forEach(p => {
+    const pill = document.createElement('button');
+    pill.className = 'ov-bar-preset';
+    pill.textContent = p;
+    pill.onclick = () => {
+      OV.bottomBar = p;
+      barInput.value = p;
+      const el = document.getElementById('ovTickerText');
+      if (el) el.textContent = p;
+    };
+    presetsRow.appendChild(pill);
+  });
+  ctrls.appendChild(presetsRow);
+
+  // Image uploads row
+  const imgLbl = document.createElement('div');
+  imgLbl.className = 'ov-section-label';
+  imgLbl.style.marginTop = '4px';
+  imgLbl.textContent = 'Images';
+  ctrls.appendChild(imgLbl);
+
+  const imgRow = document.createElement('div');
+  imgRow.className = 'ov-row';
+
+  // Multi-photo upload section
+  const photoSectionLbl = document.createElement('div');
+  photoSectionLbl.style.cssText = 'color:var(--muted);font-size:12px;min-width:82px;flex-shrink:0';
+  photoSectionLbl.textContent = 'Photos';
+  imgRow.appendChild(photoSectionLbl);
+
+  const photoListWrap = document.createElement('div');
+  photoListWrap.className = 'ov-photo-list';
+  photoListWrap.id = 'ovPhotoList';
+
+  function refreshPhotoList() {
+    photoListWrap.innerHTML = '';
+    OV.photos.forEach((photo, idx) => {
+      const tw = document.createElement('div');
+      tw.className = 'ov-photo-thumb-wrap';
+      const ti = document.createElement('img');
+      ti.src = photo.dataUrl;
+      const rm = document.createElement('button');
+      rm.className = 'ov-photo-rm';
+      rm.textContent = '×';
+      rm.onclick = () => {
+        OV.photos.splice(idx, 1);
+        refreshPhotoList();
+        renderDragPhotos(document.getElementById('ovPreviewWrap'));
+      };
+      tw.appendChild(ti); tw.appendChild(rm);
+      photoListWrap.appendChild(tw);
+    });
+    // + add button
+    const addBtn = document.createElement('label');
+    addBtn.className = 'ov-add-photo-btn';
+    addBtn.title = 'Add photo — drag into position on banner, resize by dragging corner handle';
+    addBtn.textContent = '+';
+    const addInput = document.createElement('input');
+    addInput.type = 'file'; addInput.accept = 'image/*'; addInput.style.display = 'none';
+    addInput.onchange = e => {
+      const file = e.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const pw = document.getElementById('ovPreviewWrap');
+        const pct = pw ? pw.getBoundingClientRect() : null;
+        OV.photos.push({ id: 'ph' + Date.now(), dataUrl: ev.target.result, x: 5 + OV.photos.length * 8, y: 5, w: 20 });
+        refreshPhotoList();
+        renderDragPhotos(document.getElementById('ovPreviewWrap'));
+        addInput.value = '';
+      };
+      reader.readAsDataURL(file);
+    };
+    addBtn.appendChild(addInput);
+    photoListWrap.appendChild(addBtn);
+  }
+  refreshPhotoList();
+  imgRow.appendChild(photoListWrap);
+
+  // Logo upload
+  const logoArea = document.createElement('label');
+  logoArea.className = 'ov-upload';
+  logoArea.title = 'Upload logo';
+  const logoInput = document.createElement('input');
+  logoInput.type = 'file';
+  logoInput.accept = 'image/*';
+  const logoThumb = document.createElement('img');
+  logoThumb.className = 'ov-thumb';
+  logoThumb.id = 'ovLogoThumb';
+  if (OV.logoDataUrl) { logoThumb.src = OV.logoDataUrl; logoThumb.style.display = 'block'; }
+  const logoClearBtn = document.createElement('button');
+  logoClearBtn.className = 'ov-clear-img';
+  logoClearBtn.textContent = '✕';
+  logoClearBtn.title = 'Remove logo';
+  logoClearBtn.style.display = OV.logoDataUrl ? 'inline-block' : 'none';
+  logoClearBtn.onclick = e => {
+    e.preventDefault();
+    OV.logoDataUrl = null;
+    logoThumb.style.display = 'none';
+    logoClearBtn.style.display = 'none';
+    const slot = document.getElementById('ovLogoSlot');
+    if (slot) slot.classList.remove('has-logo');
+  };
+  const logoLabel = document.createTextNode('📎 Logo');
+  logoArea.appendChild(logoLabel);
+  logoArea.appendChild(logoInput);
+  logoArea.appendChild(logoThumb);
+  logoArea.appendChild(logoClearBtn);
+
+  logoInput.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      OV.logoDataUrl = ev.target.result;
+      logoThumb.src = OV.logoDataUrl;
+      logoThumb.style.display = 'block';
+      logoClearBtn.style.display = 'inline-block';
+      const slot = document.getElementById('ovLogoSlot');
+      const slotImg = document.getElementById('ovLogoSlotImg');
+      if (slot) slot.classList.add('has-logo');
+      if (slotImg) slotImg.src = OV.logoDataUrl;
+    };
+    reader.readAsDataURL(file);
+  };
+  imgRow.appendChild(logoArea);
+
+  // Background upload
+  const bgArea = document.createElement('label');
+  bgArea.className = 'ov-upload';
+  bgArea.title = 'Upload background image — shows as a subtle overlay';
+  const bgInput = document.createElement('input');
+  bgInput.type = 'file';
+  bgInput.accept = 'image/*';
+  const bgThumb = document.createElement('img');
+  bgThumb.className = 'ov-thumb';
+  bgThumb.id = 'ovBgThumb';
+  if (OV.bgDataUrl) { bgThumb.src = OV.bgDataUrl; bgThumb.style.display = 'block'; }
+  const bgClearBtn = document.createElement('button');
+  bgClearBtn.className = 'ov-clear-img';
+  bgClearBtn.textContent = '✕';
+  bgClearBtn.title = 'Remove background';
+  bgClearBtn.style.display = OV.bgDataUrl ? 'inline-block' : 'none';
+  bgClearBtn.onclick = e => {
+    e.preventDefault();
+    OV.bgDataUrl = null;
+    bgThumb.style.display = 'none';
+    bgClearBtn.style.display = 'none';
+    const bgImgEl = document.getElementById('ovBgImg');
+    if (bgImgEl) bgImgEl.style.display = 'none';
+  };
+  bgArea.appendChild(bgInput);
+  bgArea.appendChild(bgThumb);
+  bgArea.insertBefore(document.createTextNode('🖼️ Background'), bgInput.nextSibling || bgArea.firstChild);
+  bgArea.appendChild(bgClearBtn);
+
+  bgInput.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      OV.bgDataUrl = ev.target.result;
+      bgThumb.src = OV.bgDataUrl;
+      bgThumb.style.display = 'block';
+      bgClearBtn.style.display = 'inline-block';
+      const bgImgEl = document.getElementById('ovBgImg');
+      if (bgImgEl) { bgImgEl.src = OV.bgDataUrl; bgImgEl.style.display = 'block'; }
+    };
+    reader.readAsDataURL(file);
+  };
+  imgRow.appendChild(bgArea);
+  ctrls.appendChild(imgRow);
+
+  // ── Download row ──
+  const dlLbl = document.createElement('div');
+  dlLbl.className = 'ov-section-label';
+  dlLbl.style.marginTop = '4px';
+  dlLbl.textContent = 'Export';
+  ctrls.appendChild(dlLbl);
+
+  const dlRow = document.createElement('div');
+  dlRow.className = 'ov-row';
+
+  const dlPng = document.createElement('button');
+  dlPng.className = 'ov-dl-btn';
+  dlPng.id = 'ovDownloadLoop';
+  dlPng.textContent = '⬇ Download PNG (4K · 3840px)';
+  dlPng.onclick = downloadOverlayPng;
+  dlRow.appendChild(dlPng);
+
+  const dlHint = document.createElement('span');
+  dlHint.style.cssText = 'color:var(--muted);font-size:11px';
+  dlHint.textContent = 'Import PNG into Premiere as overlay layer · use Multiply blend mode to drop the black';
+  dlRow.appendChild(dlHint);
+  ctrls.appendChild(dlRow);
+
+  c.scrollTop = 0;
+}
+
+function updateBanner() {
+  const hlEl  = document.getElementById('ovHeadlineEl');
+  const subEl = document.getElementById('ovSubEl');
+  const tagEl = document.getElementById('ovTag');
+  if (hlEl)  hlEl.textContent  = OV.headline || '';
+  if (subEl) subEl.textContent = OV.subtext  || '';
+  if (tagEl && OV.activeTopicIdx >= 0 && OV.topics[OV.activeTopicIdx]) {
+    tagEl.textContent = OV.topics[OV.activeTopicIdx].tag;
+  }
+}
+
+function updateBannerTheme() {
+  const clr = ovColor();
+  const banner = document.getElementById('ovBanner');
+  const side   = document.getElementById('ovSide');
+  const tag    = document.getElementById('ovTag');
+  const ticker = document.getElementById('ovTicker');
+  if (banner) { banner.style.setProperty('--ov-clr', clr); banner.style.background = OV.bgColor; }
+  if (side)   side.style.background   = clr;
+  if (tag)    tag.style.background    = clr;
+  if (ticker) ticker.style.background = clr;
+}
+
+function renderDragPhotos(container) {
+  if (!container) container = document.getElementById('ovPreviewWrap');
+  if (!container) return;
+  container.querySelectorAll('.ov-photo-wrap').forEach(el => el.remove());
+  OV.photos.forEach(photo => {
+    const wrap = document.createElement('div');
+    wrap.className = 'ov-photo-wrap';
+    wrap.style.cssText = `left:${photo.x}%;top:${photo.y}%;width:${photo.w}%;position:absolute;z-index:10;cursor:move;user-select:none`;
+    const img = document.createElement('img');
+    img.src = photo.dataUrl;
+    img.style.cssText = 'width:100%;height:auto;display:block;pointer-events:none';
+    wrap.appendChild(img);
+    const handle = document.createElement('div');
+    handle.className = 'ov-ph-handle';
+    wrap.appendChild(handle);
+    container.appendChild(wrap);
+    makeDraggablePhoto(wrap, handle, container, photo);
+  });
+}
+
+function makeDraggablePhoto(wrap, handle, container, photo) {
+  // drag to move
+  wrap.addEventListener('mousedown', e => {
+    if (e.target === handle) return;
+    e.preventDefault();
+    const cr = container.getBoundingClientRect();
+    const sx = e.clientX, sy = e.clientY, sl = photo.x, st = photo.y;
+    const onMove = ev => {
+      photo.x = Math.max(-10, sl + (ev.clientX - sx) / cr.width  * 100);
+      photo.y = Math.max(-10, st + (ev.clientY - sy) / cr.height * 100);
+      wrap.style.left = photo.x + '%';
+      wrap.style.top  = photo.y + '%';
+    };
+    const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+  // corner handle to resize
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault(); e.stopPropagation();
+    const cr = container.getBoundingClientRect();
+    const sx = e.clientX, sw = photo.w;
+    const onMove = ev => {
+      photo.w = Math.max(3, sw + (ev.clientX - sx) / cr.width * 100);
+      wrap.style.width = photo.w + '%';
+    };
+    const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
+
+async function downloadOverlayPng() {
+  const el = document.getElementById('ovScaleInner');
+  if (!el || typeof html2canvas === 'undefined') { alert('Export not ready — reload and try again.'); return; }
+  const btn = document.getElementById('ovDownloadLoop');
+  if (btn) btn.textContent = 'Rendering 4K…';
+  try {
+    // el is natural-width (no transform). Scale it UP to exactly 3840px output.
+    const exportScale = 3840 / el.offsetWidth;
+    const canvas = await html2canvas(el, {
+      scale: exportScale,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: OV.bgColor,
+      logging: false,
+      imageTimeout: 0
+    });
+    const a = document.createElement('a');
+    a.download = 'manza-banner-4k.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  } catch(e) {
+    alert('PNG export failed: ' + e.message);
+  }
+  if (btn) btn.textContent = '⬇ Download PNG (4K · 3840px)';
+}
+
+async function downloadOverlayLoop() {
+  // Bottom bar is now static — just export a high-res PNG (same as downloadOverlayPng)
+  // Named "Loop" kept for button label continuity; user imports PNG into Premiere as overlay
+  await downloadOverlayPng();
+}
+
+function updateBottomBar(text) {
+  OV.bottomBar = text;
+  const el = document.getElementById('ovTickerText');
+  if (el) el.textContent = text;
+  const inp = document.getElementById('ovBarInput');
+  if (inp) inp.value = text;
+}
+
+function applyManualHeadline() {
+  const hlInput  = document.getElementById('ovHlInput');
+  const subInput = document.getElementById('ovSubInput');
+  if (hlInput)  OV.headline = hlInput.value.trim().toUpperCase();
+  if (subInput) OV.subtext  = subInput.value.trim();
+  OV.activeTopicIdx = -1;
+  document.querySelectorAll('.ov-topic').forEach(b => b.classList.remove('active'));
+  updateBanner();
+}
+
+// ═══════════════════════════════════════════════════════
+
+loadList();
+</script>
+</body>
+</html>

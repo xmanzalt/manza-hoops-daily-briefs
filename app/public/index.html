@@ -238,6 +238,44 @@
   .ov-topic.sub.active{opacity:1}
   .ov-topic-group-label{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:2px 4px;align-self:center;white-space:nowrap}
 
+  /* ── Shorts tab ── */
+  .shorts-wrap{padding:20px 24px;display:flex;flex-direction:column;gap:16px;max-width:900px}
+  .shorts-section-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .shorts-pills{display:flex;flex-wrap:wrap;gap:8px;min-height:24px}
+  .shorts-pill{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--line);color:var(--muted);background:var(--panel2);transition:all .15s;user-select:none}
+  .shorts-pill:hover{border-color:var(--accent);color:var(--text)}
+  .shorts-pill.active{border-color:var(--accent);color:var(--text);background:var(--panel)}
+  .shorts-pill.used{border-color:#22c55e;color:#22c55e;background:rgba(34,197,94,.08)}
+  .shorts-pill.used.active{background:rgba(34,197,94,.15)}
+  .shorts-empty-pills{color:var(--muted);font-size:12px;font-style:italic;padding:4px 0}
+  .shorts-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .shorts-card-header{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--panel2)}
+  .shorts-card-title{flex:1;font-size:13px;font-weight:700;color:var(--text)}
+  .shorts-btn-use{background:#22c55e;color:#fff;border:none;border-radius:7px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .15s}
+  .shorts-btn-use:hover{opacity:.85}
+  .shorts-btn-use.already{background:rgba(34,197,94,.15);color:#22c55e;border:1px solid #22c55e}
+  .shorts-btn-discard{background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:7px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+  .shorts-btn-discard:hover{border-color:#e8000d;color:#e8000d}
+  .shorts-card-body{padding:18px;display:flex;flex-direction:column;gap:16px}
+  .shorts-field{display:flex;flex-direction:column;gap:6px}
+  .shorts-field-label{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--muted)}
+  .shorts-platform{font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700;letter-spacing:.5px}
+  .shorts-platform.all{background:rgba(99,102,241,.15);color:#818cf8}
+  .shorts-platform.yt{background:rgba(239,68,68,.15);color:#f87171}
+  .shorts-platform.tiktok{background:rgba(20,184,166,.15);color:#2dd4bf}
+  .shorts-platform.ig{background:rgba(236,72,153,.15);color:#f472b6}
+  .shorts-field textarea,.shorts-field input[type=text]{background:var(--panel2);border:1px solid var(--line);border-radius:7px;color:var(--text);font-family:inherit;font-size:13px;padding:10px 12px;resize:vertical;width:100%;box-sizing:border-box;line-height:1.5;transition:border-color .12s}
+  .shorts-field textarea:focus,.shorts-field input[type=text]:focus{outline:none;border-color:var(--accent)}
+  .shorts-field textarea{min-height:70px}
+  .shorts-titles{display:flex;flex-direction:column;gap:7px}
+  .shorts-title-opt{display:flex;align-items:center;gap:8px}
+  .shorts-title-text{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:7px;color:var(--text);font-family:inherit;font-size:13px;padding:8px 12px;box-sizing:border-box;transition:border-color .12s}
+  .shorts-title-text:focus{outline:none;border-color:var(--accent)}
+  .shorts-copy-btn{flex-shrink:0;background:var(--panel2);border:1px solid var(--line);border-radius:6px;color:var(--muted);font-size:11px;padding:6px 10px;cursor:pointer;transition:all .12s;white-space:nowrap}
+  .shorts-copy-btn:hover{border-color:var(--accent);color:var(--text)}
+  .shorts-copy-btn.copied{border-color:#22c55e;color:#22c55e}
+  .shorts-no-brief{color:var(--muted);padding:40px 24px;font-size:14px}
+
   /* bg color swatches */
   .ov-swatch{width:26px;height:26px;border-radius:6px;border:2px solid transparent;cursor:pointer;flex-shrink:0;transition:border-color .12s}
   .ov-swatch.active{border-color:#fff}
@@ -277,6 +315,7 @@
     </div>
     <div class="tabs">
       <div class="tab active" data-tab="brief">Brief</div>
+      <div class="tab" data-tab="shorts">📱 Video Ideas</div>
       <div class="tab" data-tab="script">Script</div>
       <div class="tab" data-tab="blank">Blank Teleprompter</div>
       <div class="tab" data-tab="overlay">🎬 Overlay</div>
@@ -532,6 +571,7 @@ function renderTab(){
     return;
   }
   if(currentTab==='overlay'){ renderOverlayTab(); return; }
+  if(currentTab==='shorts'){ renderShortsTab(); return; }
   if(!current){return;}
   if(currentTab==='script'){
     c.innerHTML='<div class="scripttext"></div><div class="tab-tp-bar"><button class="btn primary tab-tp-btn">▶ Launch Teleprompter</button><span class="tab-tp-hint">Space = play/pause · ↑/↓ = speed · Esc = close</span></div>';
@@ -901,6 +941,313 @@ function buildBarPresets(topic) {
 
 function ovColor() { return OV.themeColors[OV.theme] || '#e8000d'; }
 
+// ── SHORTS TAB ──────────────────────────────────────────────────────────────
+
+function shortsStorageKey(date){ return 'shorts_v1_' + date; }
+
+function getShortsState(date){
+  try { return JSON.parse(localStorage.getItem(shortsStorageKey(date))); } catch{ return null; }
+}
+
+function saveShortsState(date, state){
+  localStorage.setItem(shortsStorageKey(date), JSON.stringify(state));
+}
+
+function parseShortsAngles(md){
+  const start = md.search(/^##\s*.*CONTENT ANGLES/im);
+  if(start === -1) return [];
+  const lines = md.slice(start).split('\n').slice(1);
+  const angles = [];
+  for(const line of lines){
+    if(/^##/.test(line)) break;
+    const m = line.match(/^\s*[-*]\s+(.*)/);
+    if(!m) continue;
+    const text = m[1].replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1').trim();
+    if(/Title ideas?:/i.test(text) || /Thumbnail/i.test(text)) continue;
+    angles.push(text);
+  }
+  return angles;
+}
+
+function parseTitlesFromBrief(md){
+  const titleLine = md.match(/Title ideas?:\s*(.*)/i);
+  if(!titleLine) return [];
+  return [...titleLine[1].matchAll(/[""]([^""]+)[""]/g)].map(m=>m[1].trim())
+    .concat([...titleLine[1].matchAll(/\*"([^"*]+)"\*/g)].map(m=>m[1].trim()))
+    .filter((v,i,a)=>a.indexOf(v)===i);
+}
+
+function parseBreakingBullets(md){
+  const start = md.search(/^##\s*.*BREAKING/im);
+  if(start === -1) return [];
+  const bullets = [];
+  const lines = md.slice(start).split('\n').slice(1);
+  for(const line of lines){
+    if(/^##/.test(line)) break;
+    const m = line.match(/^\s*[-*]\s+(.*)/);
+    if(m) bullets.push(m[1].replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1').trim());
+  }
+  return bullets;
+}
+
+function generateShortsFromBrief(brief){
+  const md = brief.markdown;
+  const angles = parseShortsAngles(md);
+  const allTitles = parseTitlesFromBrief(md);
+  const breaking = parseBreakingBullets(md);
+  const phase = (brief.phase || 'NBA').replace(/offseason\s*\/\s*/i,'').trim();
+  const year = brief.date.split('-')[0];
+
+  return angles.map((angle, i) => {
+    // Pull up to 3 title suggestions cycling through the pool
+    const t = [0,1,2].map(j => allTitles[i*3+j] || allTitles[(i+j) % Math.max(allTitles.length,1)] || '');
+    // If we still don't have 3, generate fallbacks
+    const clean = angle.replace(/^"([^"]+)".*/,'$1').replace(/—.*/,'').trim();
+    if(!t[0]) t[0] = clean + ' (Full Breakdown)';
+    if(!t[1]) t[1] = 'NBA Update: ' + clean.slice(0,55);
+    if(!t[2]) t[2] = clean + ' — What This Means For Next Season';
+
+    // Relevant context from breaking bullets
+    const angleWords = angle.toLowerCase().split(/\W+/).filter(w=>w.length>4);
+    const relevant = breaking.filter(b => angleWords.some(w=>b.toLowerCase().includes(w))).slice(0,3);
+    const topicsText = (relevant.length ? relevant : [angle]).map(b=>'• '+b.slice(0,120)).join('\n');
+
+    // Video outline ~60s
+    const outline =
+`[0:00–0:05] Hook — ${clean.slice(0,60)}
+[0:05–0:20] Context — set up why this matters
+[0:20–0:45] Key details — ${relevant[0] ? relevant[0].slice(0,90) : angle.slice(0,90)}
+[0:45–1:00] Your take + CTA — "What do you think? Drop it below 👇"`;
+
+    // Header text: punchy ALL CAPS
+    const headerText = clean.toUpperCase().slice(0,52);
+
+    // Description
+    const desc = `${clean}. Breaking down every detail of the latest NBA news. ${phase} ${year} is moving fast — drop your thoughts below.\n\n#NBA #NBAFreeAgency #ManzaHoops`;
+
+    // Tags
+    const nameMatches = [...angle.matchAll(/\b([A-Z][a-zé]+(?:\s[A-Z][a-zé]+)+)\b/g)].map(m=>'#'+m[1].replace(/\s/g,''));
+    const tags = ['#NBA','#NBAFreeAgency','#NBATwitter','#Basketball','#ManzaHoops',
+      '#NBAShorts','#HoopsNews','#' + phase.replace(/\s+/g,''),
+      ...nameMatches].filter((v,i,a)=>a.indexOf(v)===i).slice(0,12).join(' ');
+
+    return {
+      id: 'sh_' + brief.date + '_' + i,
+      status: 'idea',          // 'idea' | 'use'
+      videoIdea: angle,
+      topics: topicsText,
+      outline,
+      titles: [t[0], t[1], t[2]],
+      headerText,
+      description: desc,
+      tags,
+    };
+  });
+}
+
+let shortsActiveId = null;
+
+function renderShortsTab(){
+  const c = document.getElementById('content');
+  if(!current){
+    c.innerHTML = '<div class="shorts-no-brief">Select a brief from the cabinet to generate Shorts ideas.</div>';
+    return;
+  }
+
+  // Load or generate state
+  let state = getShortsState(current.date);
+  if(!state){
+    state = { ideas: generateShortsFromBrief(current) };
+    saveShortsState(current.date, state);
+  }
+
+  const ideas = state.ideas.filter(s=>s.status!=='discarded');
+  const used  = ideas.filter(s=>s.status==='use');
+  const pool  = ideas.filter(s=>s.status==='idea');
+
+  // Pick active
+  if(!shortsActiveId || !ideas.find(s=>s.id===shortsActiveId)){
+    shortsActiveId = ideas[0]?.id || null;
+  }
+  const active = ideas.find(s=>s.id===shortsActiveId) || null;
+
+  // Build HTML
+  const wrap = document.createElement('div');
+  wrap.className = 'shorts-wrap';
+
+  // ── Use section ──
+  if(used.length){
+    const useSection = document.createElement('div');
+    useSection.innerHTML = `<div class="shorts-section-label">✅ In Use</div>`;
+    const pills = document.createElement('div');
+    pills.className = 'shorts-pills';
+    used.forEach(s=>{
+      const p = document.createElement('div');
+      p.className = 'shorts-pill used' + (s.id===shortsActiveId?' active':'');
+      p.textContent = s.videoIdea.slice(0,38) + (s.videoIdea.length>38?'…':'');
+      p.title = s.videoIdea;
+      p.onclick = ()=>{ shortsActiveId=s.id; renderShortsTab(); };
+      pills.appendChild(p);
+    });
+    useSection.appendChild(pills);
+    wrap.appendChild(useSection);
+  }
+
+  // ── Ideas section ──
+  const ideasSection = document.createElement('div');
+  ideasSection.innerHTML = `<div class="shorts-section-label">💡 Ideas</div>`;
+  const pillsPool = document.createElement('div');
+  pillsPool.className = 'shorts-pills';
+  if(pool.length){
+    pool.forEach(s=>{
+      const p = document.createElement('div');
+      p.className = 'shorts-pill' + (s.id===shortsActiveId?' active':'');
+      p.textContent = s.videoIdea.slice(0,38) + (s.videoIdea.length>38?'…':'');
+      p.title = s.videoIdea;
+      p.onclick = ()=>{ shortsActiveId=s.id; renderShortsTab(); };
+      pillsPool.appendChild(p);
+    });
+  } else {
+    const empty = document.createElement('div');
+    empty.className = 'shorts-empty-pills';
+    empty.textContent = pool.length===0 && used.length ? 'All ideas are in use.' : 'No ideas generated.';
+    pillsPool.appendChild(empty);
+  }
+  ideasSection.appendChild(pillsPool);
+  wrap.appendChild(ideasSection);
+
+  // ── Active card ──
+  if(active){
+    const card = document.createElement('div');
+    card.className = 'shorts-card';
+
+    // Card header with Use / Discard buttons
+    const hdr = document.createElement('div');
+    hdr.className = 'shorts-card-header';
+    const ttl = document.createElement('div');
+    ttl.className = 'shorts-card-title';
+    ttl.textContent = active.videoIdea.slice(0,70) + (active.videoIdea.length>70?'…':'');
+    hdr.appendChild(ttl);
+
+    const useBtn = document.createElement('button');
+    useBtn.className = 'shorts-btn-use' + (active.status==='use'?' already':'');
+    useBtn.textContent = active.status==='use' ? '✅ In Use' : '✓ Use';
+    useBtn.onclick = ()=>{
+      const st2 = getShortsState(current.date);
+      const idea = st2.ideas.find(s=>s.id===active.id);
+      if(idea) idea.status = idea.status==='use' ? 'idea' : 'use';
+      saveShortsState(current.date, st2);
+      renderShortsTab();
+    };
+
+    const discardBtn = document.createElement('button');
+    discardBtn.className = 'shorts-btn-discard';
+    discardBtn.textContent = '✕ Discard';
+    discardBtn.onclick = ()=>{
+      if(!confirm('Discard this short idea? This removes it from the list.')) return;
+      const st2 = getShortsState(current.date);
+      const idea = st2.ideas.find(s=>s.id===active.id);
+      if(idea) idea.status = 'discarded';
+      saveShortsState(current.date, st2);
+      shortsActiveId = null;
+      renderShortsTab();
+    };
+
+    hdr.appendChild(useBtn);
+    hdr.appendChild(discardBtn);
+    card.appendChild(hdr);
+
+    // Card body fields
+    const body = document.createElement('div');
+    body.className = 'shorts-card-body';
+
+    function field(labelText, badges, tagName, value, fieldKey, placeholder, rows){
+      const f = document.createElement('div');
+      f.className = 'shorts-field';
+      const lbl = document.createElement('div');
+      lbl.className = 'shorts-field-label';
+      lbl.innerHTML = labelText + badges;
+      f.appendChild(lbl);
+      let el;
+      if(tagName==='textarea'){
+        el = document.createElement('textarea');
+        el.rows = rows || 3;
+      } else {
+        el = document.createElement('input');
+        el.type = 'text';
+      }
+      el.value = value;
+      el.placeholder = placeholder || '';
+      el.oninput = ()=>{
+        const st2 = getShortsState(current.date);
+        const idea = st2.ideas.find(s=>s.id===active.id);
+        if(idea) idea[fieldKey] = el.value;
+        saveShortsState(current.date, st2);
+      };
+      f.appendChild(el);
+      return f;
+    }
+
+    function badge(txt, cls){ return `<span class="shorts-platform ${cls}">${txt}</span>`; }
+    const all3 = badge('TikTok','tiktok')+badge('IG Reels','ig')+badge('YT Shorts','yt');
+    const ytOnly = badge('YT Shorts only','yt');
+    const igTt = badge('TikTok','tiktok')+badge('IG Reels','ig');
+
+    body.appendChild(field('VIDEO IDEA', badge('All platforms','all'), 'textarea', active.videoIdea, 'videoIdea', 'Describe the video concept and filming style…', 2));
+    body.appendChild(field('TOPICS COVERED', badge('All platforms','all'), 'textarea', active.topics, 'topics', '• Topic 1\n• Topic 2', 3));
+    body.appendChild(field('VIDEO OUTLINE', badge('All platforms','all'), 'textarea', active.outline, 'outline', '[0:00] Hook…', 5));
+
+    // Titles — 3 clickable-to-copy inputs
+    const titlesField = document.createElement('div');
+    titlesField.className = 'shorts-field';
+    const titlesLbl = document.createElement('div');
+    titlesLbl.className = 'shorts-field-label';
+    titlesLbl.innerHTML = 'TITLE SUGGESTIONS <span style="color:var(--muted);font-size:9px;font-weight:400;letter-spacing:0;text-transform:none">click to copy</span>' + all3;
+    titlesField.appendChild(titlesLbl);
+    const titlesWrap = document.createElement('div');
+    titlesWrap.className = 'shorts-titles';
+    active.titles.forEach((t, ti)=>{
+      const row = document.createElement('div');
+      row.className = 'shorts-title-opt';
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.className = 'shorts-title-text';
+      inp.value = t;
+      inp.oninput = ()=>{
+        const st2 = getShortsState(current.date);
+        const idea = st2.ideas.find(s=>s.id===active.id);
+        if(idea){ idea.titles[ti] = inp.value; saveShortsState(current.date, st2); }
+      };
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'shorts-copy-btn';
+      copyBtn.textContent = 'Copy';
+      copyBtn.onclick = ()=>{
+        navigator.clipboard.writeText(inp.value).then(()=>{
+          copyBtn.textContent = 'Copied!';
+          copyBtn.classList.add('copied');
+          setTimeout(()=>{ copyBtn.textContent='Copy'; copyBtn.classList.remove('copied'); }, 1800);
+        });
+      };
+      row.appendChild(inp);
+      row.appendChild(copyBtn);
+      titlesWrap.appendChild(row);
+    });
+    titlesField.appendChild(titlesWrap);
+    body.appendChild(titlesField);
+
+    body.appendChild(field('HEADER / ONSCREEN TEXT', igTt, 'input', active.headerText, 'headerText', 'Short punchy ALL CAPS line for the screen…'));
+    body.appendChild(field('DESCRIPTION', all3, 'textarea', active.description, 'description', 'Caption / description for the post…', 4));
+    body.appendChild(field('TAGS / HASHTAGS', all3, 'input', active.tags, 'tags', '#NBA #ManzaHoops…'));
+
+    card.appendChild(body);
+    wrap.appendChild(card);
+  }
+
+  c.innerHTML = '';
+  c.appendChild(wrap);
+  c.scrollTop = 0;
+}
+
 function renderOverlayTab() {
   const c = document.getElementById('content');
   if (!current) {
@@ -984,19 +1331,7 @@ function renderOverlayTab() {
         });
       }
     };
-    // copy icon next to each pill
-    const copyIcon = document.createElement('button');
-    copyIcon.title = 'Copy headline + subtext';
-    copyIcon.style.cssText = 'background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:0 2px;line-height:1;vertical-align:middle';
-    copyIcon.textContent = '⎘';
-    copyIcon.onclick = e => {
-      e.stopPropagation();
-      navigator.clipboard.writeText(t.headline + (t.subtext ? '\n' + t.subtext : ''));
-      copyIcon.textContent = '✓';
-      setTimeout(() => copyIcon.textContent = '⎘', 1200);
-    };
     topicsRow.appendChild(btn);
-    topicsRow.appendChild(copyIcon);
   });
   const manualBtn = document.createElement('button');
   manualBtn.className = 'ov-topic';

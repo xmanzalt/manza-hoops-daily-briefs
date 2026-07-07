@@ -1062,12 +1062,29 @@ function generateShortsFromBrief(brief){
     const relevant = breaking.filter(b => angleWords.some(w=>b.toLowerCase().includes(w))).slice(0,3);
     const topicsText = (relevant.length ? relevant : [angle]).map(b=>'• '+b.slice(0,120)).join('\n');
 
-    // Video outline ~60s
+    // Video outline — structured guidance
     const outline =
-`[0:00–0:05] Hook — ${clean.slice(0,60)}
-[0:05–0:20] Context — set up why this matters
-[0:20–0:45] Key details — ${relevant[0] ? relevant[0].slice(0,90) : angle.slice(0,90)}
-[0:45–1:00] Your take + CTA — "What do you think? Drop it below 👇"`;
+`HOOK
+Open on the most surprising or provocative angle: "${clean.slice(0,60)}${clean.length>60?'…':''}". Lead with what makes this story feel urgent TODAY.
+
+CONTEXT
+${relevant.length ? relevant[0].slice(0,140) : angle}
+Brief setup only — get to the good stuff fast.
+
+DEEP DIVE — WHAT TO COVER
+${relevant.map(b=>'• '+b.slice(0,120)).join('\n') || '• '+angle}
+• Address the obvious question or counterargument
+• Add one comparison or stat that reframes the story
+
+YOUR TAKE & CLOSE
+State your read on this clearly. Close with a question that drives comments — debate = algorithm fuel.
+
+📚 RESEARCH
+  • NBA.com Transactions → https://www.nba.com/players/transactions
+  • Basketball-Reference → https://www.basketball-reference.com
+  • StatMuse → https://www.statmuse.com/nba
+  • HoopsHype Rumors → https://hoopshype.com/rumors/
+  • Spotrac (contracts) → https://www.spotrac.com/nba`;
 
     // Header text: punchy ALL CAPS
     const headerText = clean.toUpperCase().slice(0,52);
@@ -2009,6 +2026,99 @@ const GVI_TEMPLATES = {
   ],
 };
 
+const GVI_RESEARCH = {
+  historical: [
+    'Basketball-Reference (season logs, game logs, all historical stats) → https://www.basketball-reference.com',
+    'StatMuse (natural-language stat lookups: "Wilt Chamberlain career highs") → https://www.statmuse.com/nba',
+    'NBA.com Historical Stats → https://www.nba.com/stats',
+    'YouTube NBA Vault — classic footage & full games → https://www.youtube.com/@NBA/playlists',
+    'PBPStats Play-by-Play archive → https://www.pbpstats.com',
+  ],
+  predictions: [
+    'Basketball-Reference (current trends, past comps) → https://www.basketball-reference.com',
+    'Spotrac — salary cap, contract details, future commitments → https://www.spotrac.com/nba',
+    'RealGM — transactions, roster moves, trade history → https://basketball.realgm.com',
+    'HoopsHype Rumors tracker → https://hoopshype.com/rumors/',
+    'ESPN NBA news & insider reports → https://www.espn.com/nba/',
+  ],
+  'player-spotlights': [
+    'Basketball-Reference player pages → https://www.basketball-reference.com/players/',
+    'Cleaning the Glass — quality-of-shot metrics, context-adjusted stats → https://cleaningtheglass.com',
+    'PBPStats — shot charts, on/off splits, matchup data → https://www.pbpstats.com',
+    'StatMuse — quick player lookups with context → https://www.statmuse.com/nba/players',
+    'NBA.com Player Stats & Tracking → https://www.nba.com/stats/players',
+  ],
+  'team-analysis': [
+    'Cleaning the Glass — team efficiency, lineup splits → https://cleaningtheglass.com',
+    'PBPStats — lineup combos, rotation data → https://www.pbpstats.com/lineup-stats',
+    'Basketball-Reference team pages → https://www.basketball-reference.com/teams/',
+    'NBA.com Advanced Team Stats → https://www.nba.com/stats/teams/advanced',
+    'Dunks & Threes — visual team reports → https://dunksandthrees.com',
+  ],
+  'hot-takes': [
+    'Basketball-Reference — use to find the stats that support or challenge the take → https://www.basketball-reference.com',
+    'StatMuse — fast fact-checking, shareable quote-style stats → https://www.statmuse.com/nba',
+    'Cleaning the Glass — to counter narrative with real impact numbers → https://cleaningtheglass.com',
+    'The Athletic NBA analysis & long-form → https://theathletic.com/nba/',
+  ],
+  'trades-fa': [
+    'Spotrac — cap space, contract structures, NTC status → https://www.spotrac.com/nba',
+    'RealGM Trade Checker (salary matching) → https://basketball.realgm.com/nba/tradechecker',
+    'HoopsHype Salaries & cap table → https://hoopshype.com/salaries/',
+    'ESPN Trade Machine → https://www.espn.com/nba/tradeMachine',
+    'RealGM Free Agent Tracker → https://basketball.realgm.com/nba/free-agents',
+  ],
+  draft: [
+    'Basketball-Reference Draft Database (every pick since 1947) → https://www.basketball-reference.com/draft/',
+    'RealGM Past Drafts → https://basketball.realgm.com/nba/draft/past-drafts',
+    'The Stepien — draft analytics & surplus value → https://www.thestepien.com',
+    'DraftNetwork prospect profiles & scouting reports → https://www.draftnetwork.com',
+    'ESPN Draft Hub → https://www.espn.com/nba/draft',
+  ],
+  debates: [
+    'Basketball-Reference comparison tool — side-by-side career stats → https://www.basketball-reference.com/friv/compare.fcgi',
+    'StatMuse — era-adjusted & head-to-head lookups → https://www.statmuse.com/nba',
+    'Cleaning the Glass for advanced/context-adjusted metrics → https://cleaningtheglass.com',
+    'Basketball-Reference Win Shares & VORP tables → https://www.basketball-reference.com/leaders/',
+  ],
+};
+
+const GVI_HOOK_GUIDE = {
+  historical:        'Open with the one fact most people have never heard about this story — "Most people don\'t know that…" works every time. Specificity is the hook.',
+  predictions:       'Lead with the bold prediction, stated as fact. "Here\'s exactly what\'s going to happen — and I\'ll show you why." Make it slightly controversial to drive watch time.',
+  'player-spotlights': 'Lead with a single stat or play that reframes how you see this player. One number. One moment. Then build from there.',
+  'team-analysis':   'Open with the one counterintuitive thing about this team. "Everyone thinks X — but the numbers tell a completely different story."',
+  'hot-takes':       'Deliver the take in the first 5 seconds, zero hedging. State it, let it land, then spend the rest of the video defending it.',
+  'trades-fa':       'Lead with the dollar figure, the name, or the destination — whatever is most surprising. Make it feel breaking and urgent.',
+  draft:             'Hook with the contrast — the miss or the steal. "This team passed on him three times." Contrast drives clicks on draft content.',
+  debates:           'State your position in sentence one. "Here\'s why [X] — and I\'ll prove it." Then anticipate the pushback immediately so viewers stay to see you answer it.',
+};
+
+function buildGVIOutline(tpl, category, clean){
+  const hook = GVI_HOOK_GUIDE[category] || 'Open with the most surprising or controversial angle — grab attention in the first few seconds.';
+  const resLinks = (GVI_RESEARCH[category] || []).map(l => '  • ' + l).join('\n');
+  const extra = tpl.extra || 'Background and context — what does the viewer need to know before the analysis?';
+  return `HOOK
+${hook}
+
+CONTEXT
+${extra}
+Keep this tight — 1 to 2 sentences max. Assume basic NBA knowledge, not deep familiarity with this specific topic.
+
+DEEP DIVE — WHAT TO COVER
+• The core argument: ${clean.replace(/—.*/,'').trim()}
+• Pull 2–3 specific stats or examples (see research links below)
+• Address the obvious counterargument — acknowledge it, then knock it down
+• The thing most people get wrong about this topic
+• Bring in a comparison or analogy that makes it click for a casual fan
+
+YOUR TAKE & CLOSE
+State your conclusion clearly and with confidence. Don't hedge. Close with a question that invites disagreement in the comments — debate = algorithm fuel.
+
+📚 RESEARCH
+${resLinks}`;
+}
+
 function gviStorageKey(){ return 'general_video_ideas_v1'; }
 function getGVIState(){ try{ return JSON.parse(localStorage.getItem(gviStorageKey())); }catch{ return null; } }
 function saveGVIState(state){ localStorage.setItem(gviStorageKey(), JSON.stringify(state)); }
@@ -2025,11 +2135,7 @@ function buildGVIIdea(tpl, category){
     status: 'idea',
     videoIdea: clean,
     topics: '• ' + clean + '\n• ' + (tpl.extra||'Background and context') + '\n• Why this matters for NBA fans right now',
-    outline:
-`[0:00–0:05] Hook — ${clean.slice(0,55)}
-[0:05–0:20] Context — why this topic matters
-[0:20–0:45] Deep dive — ${tpl.extra ? tpl.extra.slice(0,80) : 'key details and analysis'}
-[0:45–1:00] Your take + CTA — "Drop your thoughts below 👇"`,
+    outline: buildGVIOutline(tpl, category, clean),
     titles: [
       clean.slice(0,70),
       'NBA ' + catLabel + ': ' + clean.slice(0,55),

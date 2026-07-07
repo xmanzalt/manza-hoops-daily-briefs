@@ -280,6 +280,40 @@
   .ov-swatch{width:26px;height:26px;border-radius:6px;border:2px solid transparent;cursor:pointer;flex-shrink:0;transition:border-color .12s}
   .ov-swatch.active{border-color:#fff}
   .ov-swatch:hover{border-color:var(--muted)}
+
+  /* ── Sidebar pinned nav ── */
+  .sidebar-pinned{padding:8px 8px 6px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:3px}
+  .sidebar-pin-btn{display:flex;align-items:center;gap:9px;width:100%;background:none;border:none;border-radius:8px;color:var(--muted);font-family:inherit;font-size:13px;padding:8px 10px;cursor:pointer;text-align:left;transition:background .12s,color .12s;white-space:nowrap}
+  .sidebar-pin-btn:hover{background:var(--panel2);color:var(--text)}
+  .sidebar-pin-btn.active{background:var(--chip);color:var(--text);outline:1px solid var(--accent)}
+  .sidebar-pin-icon{font-size:15px;line-height:1;flex-shrink:0}
+
+  /* ── General Video Ideas tab ── */
+  .gvi-wrap{padding:20px 24px;display:flex;flex-direction:column;gap:16px;max-width:900px}
+  .gvi-top-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .gvi-section-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .gvi-cat-pills{display:flex;flex-wrap:wrap;gap:7px}
+  .gvi-cat-pill{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--line);color:var(--muted);background:var(--panel2);transition:all .15s;user-select:none;font-family:inherit}
+  .gvi-cat-pill:hover{border-color:var(--accent);color:var(--text)}
+  .gvi-cat-pill.active{border-color:var(--accent);color:var(--text);background:var(--panel)}
+  .gvi-generate-btn{background:linear-gradient(180deg,var(--accent),#e85d10);border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;padding:8px 18px;cursor:pointer;white-space:nowrap;transition:opacity .15s}
+  .gvi-generate-btn:hover{opacity:.88}
+  .gvi-generate-btn:active{transform:scale(.97)}
+  .gvi-clear-btn{background:none;border:1px solid var(--line);border-radius:8px;color:var(--muted);font-family:inherit;font-size:12px;padding:7px 13px;cursor:pointer;white-space:nowrap;transition:all .15s}
+  .gvi-clear-btn:hover{border-color:#e8000d;color:#e8000d}
+  .gvi-count{color:var(--muted);font-size:12px;margin-left:auto}
+  /* reuse shorts-* classes for pills, cards, fields */
+  .gvi-cat-badge{font-size:9px;font-weight:700;letter-spacing:.8px;padding:2px 7px;border-radius:4px;text-transform:uppercase}
+  .gvi-cat-historical{background:rgba(245,197,35,.12);color:#f5c542}
+  .gvi-cat-predictions{background:rgba(155,110,243,.12);color:#9b6ef3}
+  .gvi-cat-player-spotlights{background:rgba(46,196,166,.12);color:#2ec4a6}
+  .gvi-cat-team-analysis{background:rgba(90,141,245,.12);color:#5a8df5}
+  .gvi-cat-hot-takes{background:rgba(232,0,13,.12);color:#e8000d}
+  .gvi-cat-trades-fa{background:rgba(255,107,26,.12);color:#ff6b1a}
+  .gvi-cat-draft{background:rgba(99,220,120,.12);color:#63dc78}
+  .gvi-cat-debates{background:rgba(200,130,255,.12);color:#c882ff}
+  .gvi-empty{color:var(--muted);padding:40px 24px;font-size:14px;text-align:center}
+  .gvi-empty-hint{font-size:12px;color:var(--muted);margin-top:8px;opacity:.7}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -292,6 +326,14 @@
         <h1>🏀 Manza Hoops Daily Briefs</h1>
         <div class="sub" id="sub">Daily News Database</div>
       </div>
+    </div>
+    <div class="sidebar-pinned">
+      <button class="sidebar-pin-btn" id="pinBtnBlank" data-view="blank">
+        <span class="sidebar-pin-icon">📝</span>Blank Teleprompter
+      </button>
+      <button class="sidebar-pin-btn" id="pinBtnGeneral" data-view="general-ideas">
+        <span class="sidebar-pin-icon">💡</span>General Video Ideas
+      </button>
     </div>
     <div class="toolbar">
       <input id="search" placeholder="Search dates / phase…" />
@@ -317,7 +359,6 @@
       <div class="tab active" data-tab="brief">Brief</div>
       <div class="tab" data-tab="shorts">📱 Video Ideas</div>
       <div class="tab" data-tab="script">Script</div>
-      <div class="tab" data-tab="blank">Blank Teleprompter</div>
       <div class="tab" data-tab="overlay">🎬 Overlay</div>
     </div>
     <div class="content" id="content">
@@ -539,6 +580,12 @@ async function selectBrief(file){
   current = parseBriefClient(file, md);
   // reset per-brief state only — preserve logo, theme, bgColor across briefs
   OV.headline=''; OV.subtext=''; OV.activeTopicIdx=0; OV.bottomBar=''; OV.topics=[]; OV.photos=[];
+  // if coming from a sidebar pinned view, switch back to brief tabs
+  if(currentTab==='blank'||currentTab==='general-ideas'){
+    currentTab='brief';
+    document.querySelectorAll('.sidebar-pin-btn').forEach(b=>b.classList.remove('active'));
+  }
+  document.querySelector('.tabs').style.display='';
   const displayTitle=(current.title||current.date).replace(/\s*[—–-]+\s*.*/,'').replace(/\bCUE SHEET\b/gi,'').trim();
   document.getElementById('title').textContent=displayTitle;
   document.getElementById('meta').innerHTML=
@@ -570,6 +617,7 @@ function renderTab(){
     }
     return;
   }
+  if(currentTab==='general-ideas'){ renderGeneralIdeasTab(); return; }
   if(currentTab==='overlay'){ renderOverlayTab(); return; }
   if(currentTab==='shorts'){ renderShortsTab(); return; }
   if(!current){return;}
@@ -587,6 +635,8 @@ function renderTab(){
 // ---------- tabs ----------
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.sidebar-pin-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.tabs').style.display='';
   t.classList.add('active'); currentTab=t.dataset.tab; renderTab();
 });
 document.getElementById('search').oninput=e=>buildTree(e.target.value);
@@ -1870,6 +1920,418 @@ function applyManualHeadline() {
   document.querySelectorAll('.ov-topic').forEach(b => b.classList.remove('active'));
   updateBanner();
 }
+
+// ═══════════════════════════════════════════════════════
+// GENERAL VIDEO IDEAS
+// ═══════════════════════════════════════════════════════
+
+const GVI_CATEGORIES = [
+  { key: 'historical',        label: '🏛 Historical' },
+  { key: 'predictions',       label: '🔮 Predictions' },
+  { key: 'player-spotlights', label: '⭐ Player Spotlights' },
+  { key: 'team-analysis',     label: '📊 Team Analysis' },
+  { key: 'hot-takes',         label: '🔥 Hot Takes' },
+  { key: 'trades-fa',         label: '🔁 Trades & FA' },
+  { key: 'draft',             label: '🎓 Draft' },
+  { key: 'debates',           label: '💬 Debates' },
+];
+
+const GVI_TEMPLATES = {
+  historical: [
+    { angle: "The 1996 Draft class: why it remains the greatest ever assembled", extra: "Jordan era ends, Kobe/AI/Nash all drafted same year — context of the era" },
+    { angle: "Wilt Chamberlain's 100-point game — could any player do it in today's NBA?", extra: "Modern pace, defense rules, double teams — honest comparison" },
+    { angle: "How the Bad Boy Pistons redefined NBA defense and changed the rulebook", extra: "Hand-check, physical play, how the league responded" },
+    { angle: "The Malice at the Palace: what really happened and its lasting impact", extra: "Ron Artest, fan culture, security, how the NBA changed after" },
+    { angle: "Magic vs Bird: how a rivalry saved the entire NBA", extra: "League was struggling before them — ratings, attendance, the turnaround" },
+    { angle: "The rise and fall of the Seattle SuperSonics — the NBA's biggest mistake", extra: "OKC relocation story, fan backlash, what could have been" },
+    { angle: "Kareem's sky hook: the most unstoppable move in basketball history", extra: "Why no one learned it, could it work today, closest modern equivalents" },
+    { angle: "How the ABA-NBA merger changed professional basketball forever", extra: "3-pt line, dunking, player salaries, the Doctor J pipeline" },
+    { angle: "The 2001 Sixers run: Allen Iverson's greatest achievement", extra: "4–1 over Bucks, game 1 win over Lakers, the heart of that team" },
+    { angle: "Greatest dynasties in NBA history — ranked and explained", extra: "Bulls, Celtics, Lakers, Warriors — criteria, context, legacy" },
+  ],
+  predictions: [
+    { angle: "My bold Championship predictions for the next 3 years", extra: "Contenders aging, young teams rising, west vs east balance" },
+    { angle: "The next NBA superteam: which stars will team up next?", extra: "Contract timelines, market sizes, players who've hinted at pairing up" },
+    { angle: "5 players playing right now who will be first-ballot Hall of Famers", extra: "Stats, accolades, cultural impact — make the case for each" },
+    { angle: "Which current young team becomes the next dynasty?", extra: "Roster construction, front office, market — dynasty ingredients" },
+    { angle: "Bold trade deadline predictions: who moves and where they land", extra: "Expiring contracts, teams needing help, asset-rich teams" },
+    { angle: "The NBA in 2035: how the game will look completely different", extra: "Rules, athleticism, international pipeline, media rights" },
+    { angle: "Which superstar most needs a change of scenery right now?", extra: "Performance vs team record, fit issues, offseason rumors" },
+  ],
+  'player-spotlights': [
+    { angle: "The most criminally underrated player in the NBA right now", extra: "Stats, advanced metrics, lack of media coverage — make the case" },
+    { angle: "Breaking down the GOAT debate: LeBron vs Jordan — definitive stats analysis", extra: "Era-adjusted numbers, rings context, longevity, impact" },
+    { angle: "The best player at every position in today's NBA", extra: "PG/SG/SF/PF/C — rank and justify each pick" },
+    { angle: "Why this player's max contract is actually a steal", extra: "Win shares per dollar, team trajectory, positional scarcity" },
+    { angle: "The most efficient scorer nobody is talking about", extra: "TS%, shot quality, off-ball movement — break it down visually" },
+    { angle: "Career retrospective: ranking a legend's 5 best seasons", extra: "Stats, context, team success — which year was the peak?" },
+    { angle: "Players who peaked way before we realized they were done", extra: "The early signs, the decline curve, what to watch for" },
+  ],
+  'team-analysis': [
+    { angle: "This team's starting 5 is secretly elite — and nobody is noticing", extra: "Net rating, lineup data, schedule strength — the numbers tell a story" },
+    { angle: "The biggest single weakness of every top Championship contender", extra: "Go team by team — scheme weakness, depth issue, injury risk" },
+    { angle: "Ranking every team's offseason: winners, losers, and wildcards", extra: "Signings, trades, draft picks — grade each move" },
+    { angle: "The one roster move that could make this team a title contender", extra: "Identify the missing piece, realistic trade targets, cap space" },
+    { angle: "NBA power rankings deep dive — who is actually #1 right now?", extra: "Not just record — pace, defense, health, schedule — real analysis" },
+    { angle: "This team is perfectly built for the modern NBA — here's why", extra: "Spacing, switchability, pace — how they fit the current metagame" },
+  ],
+  'hot-takes': [
+    { angle: "Unpopular opinion: this superstar is actually overrated", extra: "Be specific with stats, not hate — context of era, teammates, usage" },
+    { angle: "The most disrespected player in the league right now — and why it's intentional", extra: "Media narrative vs actual production — who gets overlooked and why" },
+    { angle: "Load management is ruining the regular season — here's the fix", extra: "Attendance decline, TV ratings, competitive integrity — solutions" },
+    { angle: "The 3-point revolution has officially gone too far", extra: "Mid-range is dying, spacing issues, defensive counterevolution" },
+    { angle: "This team should completely blow it up — here's my full rebuild plan", extra: "Assets, draft picks, timeline — a realistic rebuild blueprint" },
+    { angle: "The MVP award has lost all meaning — here's why I'm right", extra: "Voter fatigue, narrative votes, cases where the wrong guy won" },
+  ],
+  'trades-fa': [
+    { angle: "The dream trade that makes everyone involved a contender", extra: "Salary matching, asset cost, fit — make it realistic" },
+    { angle: "Ranking the best and worst max contracts in the NBA right now", extra: "Production per dollar, years left, team impact — full breakdown" },
+    { angle: "The most catastrophic free agency signing in recent history", extra: "How it happened, what went wrong, what the team should have done" },
+    { angle: "Who is the most moveable star heading into the trade deadline?", extra: "Salary, NTC, team needs — realistic landing spots" },
+    { angle: "My complete offseason makeover for the NBA's worst team", extra: "Trades, free agents, draft — realistic step-by-step rebuild" },
+    { angle: "The hidden gems of free agency: undervalued contracts this offseason", extra: "Veteran minimums and MLE signings that could win a title" },
+  ],
+  draft: [
+    { angle: "The biggest draft busts of the last decade — what went wrong?", extra: "Scouting misses, development failures, injury bad luck — categorize them" },
+    { angle: "Late first-round gems who outperformed every pick above them", extra: "Draymond, Jokic, undrafted stars — how to find value after the lottery" },
+    { angle: "Why international players are taking over the NBA", extra: "Development systems, skill vs athleticism, EuroLeague pipeline" },
+    { angle: "The next generational prospect: who is coming up next?", extra: "High school scouting, college studs, international prospects" },
+    { angle: "Ranking every #1 overall pick of the last 20 years", extra: "Lived up, busts, surprises — full ranked list with context" },
+    { angle: "Why NBA teams keep getting the draft wrong — the systemic problem", extra: "Analytics vs tape, positional biases, front office groupthink" },
+  ],
+  debates: [
+    { angle: "Making the definitive case for who the actual NBA GOAT is", extra: "Establish criteria first — rings, stats, era, impact — then argue" },
+    { angle: "Best NBA player of each decade from the 1960s to now", extra: "Not just stats — cultural impact, dominance relative to peers" },
+    { angle: "Is playoff performance overrated when we evaluate great players?", extra: "Sample size, teammates, coaching — the numbers vs the narrative" },
+    { angle: "Individual awards vs team success: what actually matters more for legacy?", extra: "Multiple MVPs with no rings vs ring winners with no hardware" },
+    { angle: "Are modern NBA players actually better than the legends?", extra: "Athletic testing, skill development, nutrition — honest comparison" },
+    { angle: "The greatest individual playoff performance in NBA history", extra: "MJ 63, LeBron 2015 Finals, Hakeem vs Robinson — make the case" },
+  ],
+};
+
+function gviStorageKey(){ return 'general_video_ideas_v1'; }
+function getGVIState(){ try{ return JSON.parse(localStorage.getItem(gviStorageKey())); }catch{ return null; } }
+function saveGVIState(state){ localStorage.setItem(gviStorageKey(), JSON.stringify(state)); }
+
+function buildGVIIdea(tpl, category){
+  const clean = tpl.angle;
+  const slug = clean.slice(0,52).toUpperCase().replace(/[^A-Z0-9 ]/g,'').trim();
+  const year = new Date().getFullYear();
+  const catMeta = GVI_CATEGORIES.find(c=>c.key===category);
+  const catLabel = catMeta ? catMeta.label.replace(/^[^ ]+ /,'') : category;
+  return {
+    id: 'gvi_' + category + '_' + (Date.now() + Math.floor(Math.random()*9999)).toString(36),
+    category,
+    status: 'idea',
+    videoIdea: clean,
+    topics: '• ' + clean + '\n• ' + (tpl.extra||'Background and context') + '\n• Why this matters for NBA fans right now',
+    outline:
+`[0:00–0:05] Hook — ${clean.slice(0,55)}
+[0:05–0:20] Context — why this topic matters
+[0:20–0:45] Deep dive — ${tpl.extra ? tpl.extra.slice(0,80) : 'key details and analysis'}
+[0:45–1:00] Your take + CTA — "Drop your thoughts below 👇"`,
+    titles: [
+      clean.slice(0,70),
+      'NBA ' + catLabel + ': ' + clean.slice(0,55),
+      clean.replace(/^(why|how|the|is|are|what)/i, w => w.toUpperCase()).slice(0,70),
+    ],
+    headerText: slug.slice(0,48),
+    description: `${clean}.\n\n${tpl.extra||'Full breakdown with stats and analysis.'}\n\n📅 ${year} · Manza Hoops\n\n#NBA #ManzaHoops #NBAAnalysis`,
+    tags: '#NBA #ManzaHoops #NBAAnalysis #Basketball #' + catLabel.replace(/\s+/g,''),
+  };
+}
+
+function generateGVIIdeas(categoryFilter){
+  let state = getGVIState() || { ideas: [] };
+  const existingAngles = new Set(state.ideas.map(i=>i.videoIdea));
+
+  const catsToGenerate = categoryFilter === 'all'
+    ? GVI_CATEGORIES.map(c=>c.key)
+    : [categoryFilter];
+
+  let added = 0;
+  for(const catKey of catsToGenerate){
+    const pool = GVI_TEMPLATES[catKey] || [];
+    const fresh = pool.filter(t => !existingAngles.has(t.angle));
+    // pick up to 2 fresh per category per generate press
+    const picks = fresh.slice(0, 2);
+    for(const tpl of picks){
+      state.ideas.push(buildGVIIdea(tpl, catKey));
+      existingAngles.add(tpl.angle);
+      added++;
+    }
+    // if pool is exhausted, generate a variant by re-adding with a fresh id
+    if(picks.length === 0 && pool.length > 0){
+      const tpl = pool[Math.floor(state.ideas.length % pool.length)];
+      state.ideas.push(buildGVIIdea(tpl, catKey));
+      added++;
+    }
+  }
+  saveGVIState(state);
+  return added;
+}
+
+let gviActiveId = null;
+let gviCatFilter = 'all';
+
+function renderGeneralIdeasTab(){
+  const c = document.getElementById('content');
+
+  let state = getGVIState() || { ideas: [] };
+  const allIdeas = state.ideas.filter(s=>s.status!=='discarded');
+  const filtered = gviCatFilter === 'all'
+    ? allIdeas
+    : allIdeas.filter(s=>s.category===gviCatFilter);
+  const used = filtered.filter(s=>s.status==='use');
+  const pool = filtered.filter(s=>s.status==='idea');
+
+  if(!gviActiveId || !filtered.find(s=>s.id===gviActiveId)){
+    gviActiveId = filtered[0]?.id || null;
+  }
+  const active = filtered.find(s=>s.id===gviActiveId) || null;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'gvi-wrap';
+
+  // ── Top bar: category pills + generate button ──
+  const topBar = document.createElement('div');
+  topBar.className = 'gvi-top-bar';
+
+  const catPills = document.createElement('div');
+  catPills.className = 'gvi-cat-pills';
+
+  const allPill = document.createElement('button');
+  allPill.className = 'gvi-cat-pill' + (gviCatFilter==='all'?' active':'');
+  allPill.textContent = 'All';
+  allPill.onclick = ()=>{ gviCatFilter='all'; gviActiveId=null; renderGeneralIdeasTab(); };
+  catPills.appendChild(allPill);
+
+  GVI_CATEGORIES.forEach(cat=>{
+    const p = document.createElement('button');
+    p.className = 'gvi-cat-pill' + (gviCatFilter===cat.key?' active':'');
+    p.textContent = cat.label;
+    p.onclick = ()=>{ gviCatFilter=cat.key; gviActiveId=null; renderGeneralIdeasTab(); };
+    catPills.appendChild(p);
+  });
+  topBar.appendChild(catPills);
+
+  const genBtn = document.createElement('button');
+  genBtn.className = 'gvi-generate-btn';
+  genBtn.textContent = '🔄 Generate Ideas';
+  genBtn.onclick = ()=>{
+    const added = generateGVIIdeas(gviCatFilter);
+    if(added===0) genBtn.textContent = '✓ All used!';
+    else { genBtn.textContent = `✓ +${added} added`; }
+    setTimeout(()=>{ genBtn.textContent='🔄 Generate Ideas'; renderGeneralIdeasTab(); }, 800);
+  };
+  topBar.appendChild(genBtn);
+
+  if(allIdeas.length){
+    const clrBtn = document.createElement('button');
+    clrBtn.className = 'gvi-clear-btn';
+    clrBtn.textContent = 'Clear discarded';
+    clrBtn.onclick = ()=>{
+      const st2 = getGVIState() || { ideas: [] };
+      st2.ideas = st2.ideas.filter(i=>i.status!=='discarded');
+      saveGVIState(st2);
+      renderGeneralIdeasTab();
+    };
+    topBar.appendChild(clrBtn);
+    const cnt = document.createElement('span');
+    cnt.className = 'gvi-count';
+    cnt.textContent = allIdeas.length + ' ideas total';
+    topBar.appendChild(cnt);
+  }
+  wrap.appendChild(topBar);
+
+  // Empty state
+  if(filtered.length===0){
+    const empty = document.createElement('div');
+    empty.className = 'gvi-empty';
+    empty.innerHTML = '<div style="font-size:36px;margin-bottom:10px">💡</div>'
+      + (state.ideas.length===0
+        ? 'No ideas yet — hit <strong>🔄 Generate Ideas</strong> to fill the board.'
+        : 'No ideas in this category yet. Hit <strong>🔄 Generate Ideas</strong> to add more.');
+    empty.innerHTML += '<div class="gvi-empty-hint">Ideas are saved locally and persist between sessions.</div>';
+    wrap.appendChild(empty);
+    c.innerHTML = ''; c.appendChild(wrap); c.scrollTop=0;
+    return;
+  }
+
+  // ── In Use pills ──
+  if(used.length){
+    const useSec = document.createElement('div');
+    useSec.innerHTML = '<div class="gvi-section-label">✅ In Use</div>';
+    const pills = document.createElement('div');
+    pills.className = 'shorts-pills';
+    used.forEach(s=>{
+      const p = document.createElement('div');
+      p.className = 'shorts-pill used'+(s.id===gviActiveId?' active':'');
+      p.textContent = s.videoIdea.slice(0,42)+(s.videoIdea.length>42?'…':'');
+      p.title = s.videoIdea;
+      p.onclick=()=>{ gviActiveId=s.id; renderGeneralIdeasTab(); };
+      pills.appendChild(p);
+    });
+    useSec.appendChild(pills);
+    wrap.appendChild(useSec);
+  }
+
+  // ── Ideas pills ──
+  if(pool.length){
+    const ideaSec = document.createElement('div');
+    ideaSec.innerHTML = '<div class="gvi-section-label">💡 Ideas</div>';
+    const pills = document.createElement('div');
+    pills.className = 'shorts-pills';
+    pool.forEach(s=>{
+      const catMeta = GVI_CATEGORIES.find(c=>c.key===s.category);
+      const p = document.createElement('div');
+      p.className = 'shorts-pill'+(s.id===gviActiveId?' active':'');
+      p.title = s.videoIdea;
+      p.onclick=()=>{ gviActiveId=s.id; renderGeneralIdeasTab(); };
+      const badge = document.createElement('span');
+      badge.className = 'gvi-cat-badge gvi-cat-'+s.category;
+      badge.textContent = catMeta ? catMeta.label.split(' ')[0] : s.category;
+      const txt = document.createTextNode(' '+s.videoIdea.slice(0,36)+(s.videoIdea.length>36?'…':''));
+      p.appendChild(badge);
+      p.appendChild(txt);
+      pills.appendChild(p);
+    });
+    ideaSec.appendChild(pills);
+    wrap.appendChild(ideaSec);
+  }
+
+  // ── Active card ──
+  if(active){
+    const catMeta = GVI_CATEGORIES.find(c=>c.key===active.category);
+    const card = document.createElement('div');
+    card.className = 'shorts-card';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'shorts-card-header';
+    const ttl = document.createElement('div');
+    ttl.className = 'shorts-card-title';
+    ttl.innerHTML = (catMeta ? '<span class="gvi-cat-badge gvi-cat-'+active.category+'" style="margin-right:8px">'+catMeta.label+'</span>' : '')
+      + active.videoIdea.slice(0,72)+(active.videoIdea.length>72?'…':'');
+    hdr.appendChild(ttl);
+
+    const useBtn = document.createElement('button');
+    useBtn.className = 'shorts-btn-use'+(active.status==='use'?' already':'');
+    useBtn.textContent = active.status==='use' ? '✅ In Use' : '✓ Use';
+    useBtn.onclick = ()=>{
+      const st2 = getGVIState();
+      const idea = st2.ideas.find(s=>s.id===active.id);
+      if(idea) idea.status = idea.status==='use'?'idea':'use';
+      saveGVIState(st2);
+      renderGeneralIdeasTab();
+    };
+    const discardBtn = document.createElement('button');
+    discardBtn.className = 'shorts-btn-discard';
+    discardBtn.textContent = '✕ Discard';
+    discardBtn.onclick = ()=>{
+      if(!confirm('Discard this idea?')) return;
+      const st2 = getGVIState();
+      const idea = st2.ideas.find(s=>s.id===active.id);
+      if(idea) idea.status='discarded';
+      saveGVIState(st2);
+      gviActiveId=null;
+      renderGeneralIdeasTab();
+    };
+    hdr.appendChild(useBtn);
+    hdr.appendChild(discardBtn);
+    card.appendChild(hdr);
+
+    const body = document.createElement('div');
+    body.className = 'shorts-card-body';
+
+    function gviField(labelText, badgeHtml, tagName, value, fieldKey, placeholder, rows){
+      const f = document.createElement('div');
+      f.className = 'shorts-field';
+      const lbl = document.createElement('div');
+      lbl.className = 'shorts-field-label';
+      lbl.innerHTML = labelText + (badgeHtml||'');
+      f.appendChild(lbl);
+      let el;
+      if(tagName==='textarea'){ el=document.createElement('textarea'); el.rows=rows||3; }
+      else { el=document.createElement('input'); el.type='text'; }
+      el.value = value;
+      el.placeholder = placeholder||'';
+      el.oninput = ()=>{
+        const st2 = getGVIState();
+        const idea = st2.ideas.find(s=>s.id===active.id);
+        if(idea){ idea[fieldKey]=el.value; saveGVIState(st2); }
+      };
+      f.appendChild(el);
+      return f;
+    }
+
+    function badge(txt,cls){ return `<span class="shorts-platform ${cls}">${txt}</span>`; }
+    const all3 = badge('TikTok','tiktok')+badge('IG Reels','ig')+badge('YT Shorts','yt');
+
+    body.appendChild(gviField('VIDEO IDEA', badge('All platforms','all'), 'textarea', active.videoIdea, 'videoIdea', 'What is this video about?', 2));
+    body.appendChild(gviField('TOPICS COVERED', badge('All platforms','all'), 'textarea', active.topics, 'topics', '• Topic 1\n• Topic 2', 3));
+    body.appendChild(gviField('VIDEO OUTLINE', badge('All platforms','all'), 'textarea', active.outline, 'outline', '[0:00] Hook…', 5));
+
+    // Titles
+    const titlesField = document.createElement('div');
+    titlesField.className = 'shorts-field';
+    const titlesLbl = document.createElement('div');
+    titlesLbl.className = 'shorts-field-label';
+    titlesLbl.innerHTML = 'TITLE SUGGESTIONS <span style="color:var(--muted);font-size:9px;font-weight:400;letter-spacing:0;text-transform:none">click to copy</span>' + all3;
+    titlesField.appendChild(titlesLbl);
+    const titlesWrap = document.createElement('div');
+    titlesWrap.className = 'shorts-titles';
+    active.titles.forEach((t,ti)=>{
+      const row = document.createElement('div');
+      row.className = 'shorts-title-opt';
+      const inp = document.createElement('input');
+      inp.type='text'; inp.className='shorts-title-text'; inp.value=t;
+      inp.oninput=()=>{
+        const st2=getGVIState();
+        const idea=st2.ideas.find(s=>s.id===active.id);
+        if(idea){ idea.titles[ti]=inp.value; saveGVIState(st2); }
+      };
+      const cpBtn = document.createElement('button');
+      cpBtn.className='shorts-copy-btn'; cpBtn.textContent='Copy';
+      cpBtn.onclick=()=>{ navigator.clipboard.writeText(inp.value).then(()=>{ cpBtn.textContent='Copied!'; cpBtn.classList.add('copied'); setTimeout(()=>{ cpBtn.textContent='Copy'; cpBtn.classList.remove('copied'); },1800); }); };
+      row.appendChild(inp); row.appendChild(cpBtn);
+      titlesWrap.appendChild(row);
+    });
+    titlesField.appendChild(titlesWrap);
+    body.appendChild(titlesField);
+
+    body.appendChild(gviField('HEADER / ONSCREEN TEXT', badge('IG Reels','ig')+badge('TikTok','tiktok'), 'input', active.headerText, 'headerText', 'Short punchy ALL CAPS line…'));
+    body.appendChild(gviField('DESCRIPTION', all3, 'textarea', active.description, 'description', 'Caption…', 4));
+    body.appendChild(gviField('TAGS / HASHTAGS', all3, 'input', active.tags, 'tags', '#NBA #ManzaHoops…'));
+
+    card.appendChild(body);
+    wrap.appendChild(card);
+  }
+
+  c.innerHTML=''; c.appendChild(wrap); c.scrollTop=0;
+}
+
+// ── Sidebar pinned button handlers ──────────────────────────────────────────
+document.getElementById('pinBtnBlank').onclick = () => {
+  document.querySelectorAll('.sidebar-pin-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pinBtnBlank').classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  currentTab = 'blank';
+  document.querySelector('.tabs').style.display = 'none';
+  document.getElementById('title').textContent = 'Blank Teleprompter';
+  document.getElementById('meta').innerHTML = '';
+  renderTab();
+};
+
+document.getElementById('pinBtnGeneral').onclick = () => {
+  document.querySelectorAll('.sidebar-pin-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pinBtnGeneral').classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  currentTab = 'general-ideas';
+  document.querySelector('.tabs').style.display = 'none';
+  document.getElementById('title').textContent = 'General Video Ideas';
+  document.getElementById('meta').innerHTML = '<span style="color:var(--muted);font-size:12px">Not tied to a brief · saved locally</span>';
+  renderTab();
+};
 
 // ═══════════════════════════════════════════════════════
 

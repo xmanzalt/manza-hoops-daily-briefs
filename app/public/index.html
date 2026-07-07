@@ -2439,6 +2439,23 @@ document.getElementById('pinBtnGeneral').onclick = () => {
   renderTab();
 };
 
+// ── Migrate legacy GVI outlines (timestamp format → structured format) ──────
+function migrateGVIIdeas(){
+  const state = getGVIState();
+  if(!state) return;
+  let changed = false;
+  state.ideas.forEach(idea => {
+    if(idea.outline && /\[0:0\d/.test(idea.outline)){
+      const pool = GVI_TEMPLATES[idea.category] || [];
+      const tpl = pool.find(t => t.angle === idea.videoIdea) || { angle: idea.videoIdea, extra: '' };
+      idea.outline = buildGVIOutline(tpl, idea.category, idea.videoIdea);
+      changed = true;
+    }
+  });
+  if(changed) saveGVIState(state);
+}
+migrateGVIIdeas();
+
 // ═══════════════════════════════════════════════════════
 
 loadList();

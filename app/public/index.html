@@ -2443,16 +2443,9 @@ document.getElementById('pinBtnGeneral').onclick = () => {
 function migrateGVIIdeas(){
   const state = getGVIState();
   if(!state) return;
-  let changed = false;
-  state.ideas.forEach(idea => {
-    if(idea.outline && /\[0:0\d/.test(idea.outline)){
-      const pool = GVI_TEMPLATES[idea.category] || [];
-      const tpl = pool.find(t => t.angle === idea.videoIdea) || { angle: idea.videoIdea, extra: '' };
-      idea.outline = buildGVIOutline(tpl, idea.category, idea.videoIdea);
-      changed = true;
-    }
-  });
-  if(changed) saveGVIState(state);
+  const before = state.ideas.length;
+  state.ideas = state.ideas.filter(idea => !idea.outline || !/\[0:0\d/.test(idea.outline));
+  if(state.ideas.length !== before) saveGVIState(state);
 }
 migrateGVIIdeas();
 
